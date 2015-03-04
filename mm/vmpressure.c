@@ -330,6 +330,7 @@ static void vmpressure_memcg(gfp_t gfp, struct mem_cgroup *memcg, bool tree,
 }
 #endif
 
+<<<<<<< HEAD
 static void calculate_vmpressure_win(void)
 {
 	long x;
@@ -353,6 +354,8 @@ static void calculate_vmpressure_win(void)
 	vmpressure_win = x;
 }
 
+=======
+>>>>>>> cbbd82afa1686 (mm: vmpressure: allow in-kernel clients to subscribe for events)
 static void vmpressure_global(gfp_t gfp, unsigned long scanned,
 		unsigned long reclaimed)
 {
@@ -366,9 +369,12 @@ static void vmpressure_global(gfp_t gfp, unsigned long scanned,
 		return;
 
 	spin_lock(&vmpr->sr_lock);
+<<<<<<< HEAD
 	if (!vmpr->scanned)
 		calculate_vmpressure_win();
 
+=======
+>>>>>>> cbbd82afa1686 (mm: vmpressure: allow in-kernel clients to subscribe for events)
 	vmpr->scanned += scanned;
 	vmpr->reclaimed += reclaimed;
 	scanned = vmpr->scanned;
