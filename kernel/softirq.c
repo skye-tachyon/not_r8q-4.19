@@ -93,6 +93,7 @@ static void wakeup_softirqd(void)
 		wake_up_process(tsk);
 }
 
+#ifndef CONFIG_RT_SOFTIRQ_AWARE_SCHED
 /*
  * If ksoftirqd is scheduled, we do not want to process pending softirqs
  * right now. Let ksoftirqd handle this at its own rate, to get fairness.
@@ -103,6 +104,9 @@ static bool ksoftirqd_running(void)
 
 	return tsk && (tsk->state == TASK_RUNNING);
 }
+#else
+#define ksoftirqd_running(pending) (false)
+#endif /* CONFIG_RT_SOFTIRQ_AWARE_SCHED */
 
 /*
  * preempt_count and SOFTIRQ_OFFSET usage:
@@ -258,15 +262,20 @@ static inline bool lockdep_softirq_start(void) { return false; }
 static inline void lockdep_softirq_end(bool in_hardirq) { }
 #endif
 
-#define softirq_deferred_for_rt(pending)		\
-({							\
-	__u32 deferred = 0;				\
-	if (cpupri_check_rt()) {			\
-		deferred = pending & LONG_SOFTIRQ_MASK; \
-		pending &= ~LONG_SOFTIRQ_MASK;		\
-	}						\
-	deferred;					\
-})
+#ifdef CONFIG_RT_SOFTIRQ_AWARE_SCHED
+static __u32 softirq_deferred_for_rt(__u32 *pending)
+{
+	__u32 deferred = 0;
+
+	if (rt_task(current)) {
+		deferred = *pending & LONG_SOFTIRQ_MASK;
+		*pending &= ~LONG_SOFTIRQ_MASK;
+	}
+	return deferred;
+}
+#else
+#define softirq_deferred_for_rt(x) (0)
+#endif
 
 asmlinkage __visible void __softirq_entry __do_softirq(void)
 {
@@ -287,14 +296,15 @@ asmlinkage __visible void __softirq_entry __do_softirq(void)
 	current->flags &= ~PF_MEMALLOC;
 
 	pending = local_softirq_pending();
-	deferred = softirq_deferred_for_rt(pending);
+	deferred = softirq_deferred_for_rt(&pending);
+
 	account_irq_enter_time(current);
 	__local_bh_disable_ip(_RET_IP_, SOFTIRQ_OFFSET);
 	in_hardirq = lockdep_softirq_start();
 
 restart:
 	/* Reset the pending bitmask before enabling irqs */
-	set_softirq_pending(0);
+	set_softirq_pending(deferred);
 	set_active_softirqs(pending);
 
 	local_irq_enable();
@@ -334,7 +344,7 @@ restart:
 	local_irq_disable();
 
 	pending = local_softirq_pending();
-	deferred = softirq_deferred_for_rt(pending);
+	deferred = softirq_deferred_for_rt(&pending);
 
 	if (pending) {
 		if (time_before(jiffies, end) && !need_resched() &&
