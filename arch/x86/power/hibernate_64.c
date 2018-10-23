@@ -27,26 +27,6 @@
 #include <asm/suspend.h>
 #include <asm/tlbflush.h>
 
-/* Defined in hibernate_asm_64.S */
-extern asmlinkage __visible int restore_image(void);
-
-/*
- * Address to jump to in the last phase of restore in order to get to the image
- * kernel's text (this value is passed in the image header).
- */
-unsigned long restore_jump_address __visible;
-unsigned long jump_address_phys;
-
-/*
- * Value of the cr3 register from before the hibernation (this value is passed
- * in the image header).
- */
-unsigned long restore_cr3 __visible;
-
-unsigned long temp_level4_pgt __visible;
-
-unsigned long relocated_restore_code __visible;
-
 static int set_up_temporary_text_mapping(pgd_t *pgd)
 {
 	pmd_t *pmd;
@@ -142,46 +122,7 @@ static int set_up_temporary_mappings(void)
 			return result;
 	}
 
-	temp_level4_pgt = __pa(pgd);
-	return 0;
-}
-
-static int relocate_restore_code(void)
-{
-	pgd_t *pgd;
-	p4d_t *p4d;
-	pud_t *pud;
-	pmd_t *pmd;
-	pte_t *pte;
-
-	relocated_restore_code = get_safe_page(GFP_ATOMIC);
-	if (!relocated_restore_code)
-		return -ENOMEM;
-
-	memcpy((void *)relocated_restore_code, core_restore_code, PAGE_SIZE);
-
-	/* Make the page containing the relocated code executable */
-	pgd = (pgd_t *)__va(read_cr3_pa()) +
-		pgd_index(relocated_restore_code);
-	p4d = p4d_offset(pgd, relocated_restore_code);
-	if (p4d_large(*p4d)) {
-		set_p4d(p4d, __p4d(p4d_val(*p4d) & ~_PAGE_NX));
-		goto out;
-	}
-	pud = pud_offset(p4d, relocated_restore_code);
-	if (pud_large(*pud)) {
-		set_pud(pud, __pud(pud_val(*pud) & ~_PAGE_NX));
-		goto out;
-	}
-	pmd = pmd_offset(pud, relocated_restore_code);
-	if (pmd_large(*pmd)) {
-		set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
-		goto out;
-	}
-	pte = pte_offset_kernel(pmd, relocated_restore_code);
-	set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
-out:
-	__flush_tlb_all();
+	temp_pgt = __pa(pgd);
 	return 0;
 }
 
