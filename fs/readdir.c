@@ -181,7 +181,7 @@ orig_flow:
 #endif
 	buf->result++;
 	dirent = buf->dirent;
-	if (!access_ok(VERIFY_WRITE, dirent,
+	if (!access_ok(dirent,
 			(unsigned long)(dirent->d_name + namlen + 1) -
 				(unsigned long)dirent))
 		goto efault;
@@ -358,7 +358,7 @@ SYSCALL_DEFINE3(getdents, unsigned int, fd,
 	struct inode *inode;
 #endif
 
-	if (!access_ok(VERIFY_WRITE, dirent, count))
+	if (!access_ok(dirent, count))
 		return -EFAULT;
 
 	f = fdget_pos(fd);
@@ -498,7 +498,7 @@ int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
 	struct inode *inode;
 #endif
 
-	if (!access_ok(VERIFY_WRITE, dirent, count))
+	if (!access_ok(dirent, count))
 		return -EFAULT;
 
 	f = fdget_pos(fd);
@@ -613,7 +613,7 @@ orig_flow:
 #endif
 	buf->result++;
 	dirent = buf->dirent;
-	if (!access_ok(VERIFY_WRITE, dirent,
+	if (!access_ok(dirent,
 			(unsigned long)(dirent->d_name + namlen + 1) -
 				(unsigned long)dirent))
 		goto efault;
@@ -780,7 +780,7 @@ COMPAT_SYSCALL_DEFINE3(getdents, unsigned int, fd,
 	struct inode *inode;
 #endif
 
-	if (!access_ok(VERIFY_WRITE, dirent, count))
+	if (!access_ok(dirent, count))
 		return -EFAULT;
 
 	f = fdget_pos(fd);
