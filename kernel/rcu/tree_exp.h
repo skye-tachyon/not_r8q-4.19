@@ -322,7 +322,7 @@ static bool exp_funnel_lock(struct rcu_state *rsp, unsigned long s)
 				   sync_exp_work_done(rsp, s));
 			return true;
 		}
-		rnp->exp_seq_rq = s; /* Followers can wait on us. */
+		WRITE_ONCE(rnp->exp_seq_rq, s); /* Followers can wait on us. */
 		spin_unlock(&rnp->exp_lock);
 		trace_rcu_exp_funnel_lock(rsp->name, rnp->level, rnp->grplo,
 					  rnp->grphi, TPS("nxtlvl"));
