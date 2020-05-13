@@ -5215,11 +5215,6 @@ static int do_sched_cfs_period_timer(struct cfs_bandwidth *cfs_b, int overrun)
 
 		cfs_b->distribute_running = 0;
 		throttled = !list_empty(&cfs_b->throttled_cfs_rq);
-<<<<<<< HEAD
-
-		cfs_b->runtime -= min(runtime, cfs_b->runtime);
-=======
->>>>>>> a2bb65109555 (sched/fair: Fix race between runtime distribution and assignment)
 	}
 
 	/*
@@ -5731,7 +5726,10 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	struct cfs_rq *cfs_rq;
 	struct sched_entity *se = &p->se;
 	int task_new = !(flags & ENQUEUE_WAKEUP);
-	int idle_h_nr_running = task_has_idle_policy(p);
+        int idle_h_nr_running = task_has_idle_policy(p);
+	int task_new = !(flags & ENQUEUE_WAKEUP);
+	bool prefer_idle = sched_feat(EAS_PREFER_IDLE) ?
+				(schedtune_prefer_idle(p) > 0) : 0;
 
 	/*
 	 * The code below (indirectly) updates schedutil which looks at
@@ -5802,28 +5800,27 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 			goto enqueue_throttle;
 	}
 
-enqueue_throttle:
-	if (!se) {
-		add_nr_running(rq, 1);
-		inc_rq_walt_stats(rq, p);
-		/*
-		 * Since new tasks are assigned an initial util_avg equal to
-		 * half of the spare capacity of their CPU, tiny tasks have the
-		 * ability to cross the overutilized threshold, which will
-		 * result in the load balancer ruining all the task placement
-		 * done by EAS. As a way to mitigate that effect, do not account
-		 * for the first enqueue operation of new tasks during the
-		 * overutilized flag detection.
-		 *
-		 * A better way of solving this problem would be to wait for
-		 * the PELT signals of tasks to converge before taking them
-		 * into account, but that is not straightforward to implement,
-		 * and the following generally works well enough in practice.
-		 */
-		if (!task_new)
-			update_overutilized_status(rq);
-	}
+	/* At this point se is NULL and we are at root level*/
+	add_nr_running(rq, 1);
 
+	/*
+	 * Since new tasks are assigned an initial util_avg equal to
+	 * half of the spare capacity of their CPU, tiny tasks have the
+	 * ability to cross the overutilized threshold, which will
+	 * result in the load balancer ruining all the task placement
+	 * done by EAS. As a way to mitigate that effect, do not account
+	 * for the first enqueue operation of new tasks during the
+	 * overutilized flag detection.
+	 *
+	 * A better way of solving this problem would be to wait for
+	 * the PELT signals of tasks to converge before taking them
+	 * into account, but that is not straightforward to implement,
+	 * and the following generally works well enough in practice.
+	 */
+	if (!task_new)
+		update_overutilized_status(rq);
+
+enqueue_throttle:
 	if (cfs_bandwidth_used()) {
 		/*
 		 * When bandwidth control is enabled; the cfs_rq_throttled()
