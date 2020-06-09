@@ -185,9 +185,8 @@ static __always_inline int
 bpf_probe_read_user_str_common(void *dst, u32 size,
 			       const void __user *unsafe_ptr)
 {
-	int ret;
+	int ret = strncpy_from_user_nofault(dst, unsafe_ptr, size);
 
-	ret = strncpy_from_user_nofault(dst, unsafe_ptr, size);
 	if (unlikely(ret < 0))
 		memset(dst, 0, size);
 	return ret;
