@@ -361,7 +361,7 @@ static inline pgprot_t mk_sect_prot(pgprot_t prot)
 
 #ifdef CONFIG_NUMA_BALANCING
 /*
- * See the comment in include/asm-generic/pgtable.h
+ * See the comment in include/linux/pgtable.h
  */
 static inline int pte_protnone(pte_t pte)
 {
@@ -821,7 +821,7 @@ extern int kern_addr_valid(unsigned long addr);
 
 #define arch_has_hw_pte_young	cpu_has_hw_af
 
-#include <asm-generic/pgtable.h>
+#include <linux/pgtable.h>
 
 void pgd_cache_init(void);
 #define pgtable_cache_init	pgd_cache_init
