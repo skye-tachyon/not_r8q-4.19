@@ -312,7 +312,7 @@ long strncpy_from_kernel_nofault(char *dst, const void *unsafe_addr,
 
 long strncpy_from_user_nofault(char *dst, const void __user *unsafe_addr,
 		long count);
-extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
+long strnlen_user_nofault(const void __user *unsafe_addr, long count);
 
 /**
  * get_kernel_nofault(): safely attempt to read from a location
