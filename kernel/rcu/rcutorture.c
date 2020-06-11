@@ -1335,6 +1335,7 @@ static bool rcu_torture_one_read(struct torture_random_state *trsp)
 	int readstate = 0;
 	unsigned long long ts;
 
+	WARN_ON_ONCE(!rcu_is_watching());
 	newstate = rcutorture_extend_mask(readstate, trsp);
 	rcutorture_one_extend(&readstate, newstate, trsp);
 	started = cur_ops->get_gp_seq();
