@@ -68,6 +68,7 @@
 #include <linux/tsacct_kern.h>
 
 #include <asm/tlb.h>
+#include <asm-generic/vmlinux.lds.h>
 
 #ifdef CONFIG_PARAVIRT
 # include <asm/paravirt.h>
@@ -1873,13 +1874,12 @@ struct sched_class {
 	void (*task_change_group)(struct task_struct *p, int type);
 #endif
 
-
 #ifdef CONFIG_SCHED_WALT
 	void (*fixup_walt_sched_stats)(struct rq *rq, struct task_struct *p,
 					u16 updated_demand_scaled,
 					u16 updated_pred_demand_scaled);
 #endif
-} __aligned(32); /* STRUCT_ALIGN(), vmlinux.lds.h */
+} __aligned(STRUCT_ALIGNMENT); /* STRUCT_ALIGN(), vmlinux.lds.h */
 
 static inline void put_prev_task(struct rq *rq, struct task_struct *prev)
 {
