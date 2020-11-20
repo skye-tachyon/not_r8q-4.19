@@ -100,8 +100,14 @@ static struct spu_context *coredump_next_context(int *fd)
 	if (!n)
 		return NULL;
 	*fd = n - 1;
-	file = fcheck(*fd);
-	return SPUFS_I(file_inode(file))->i_ctx;
+
+	rcu_read_lock();
+	file = lookup_fd_rcu(*fd);
+	ctx = SPUFS_I(file_inode(file))->i_ctx;
+	get_spu_context(ctx);
+	rcu_read_unlock();
+
+	return ctx;
 }
 
 int spufs_coredump_extra_notes_size(void)
