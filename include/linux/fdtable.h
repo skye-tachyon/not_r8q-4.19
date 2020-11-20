@@ -110,6 +110,7 @@ static inline struct file *lookup_fd_rcu(unsigned int fd)
 }
 
 struct file *task_lookup_fd_rcu(struct task_struct *task, unsigned int fd);
+struct file *task_lookup_next_fd_rcu(struct task_struct *task, unsigned int *fd);
 
 struct task_struct;
 
