@@ -1792,6 +1792,8 @@ static void __bpf_prog_put_noref(struct bpf_prog *prog, bool deferred)
 	bpf_prog_kallsyms_del_all(prog);
 	btf_put(prog->aux->btf);
 	bpf_prog_free_linfo(prog);
+	if (prog->aux->attach_btf)
+		btf_put(prog->aux->attach_btf);
 
 	if (deferred) {
 		if (prog->aux->sleepable)
@@ -2214,6 +2216,20 @@ static int bpf_prog_load(union bpf_attr *attr, union bpf_attr __user *uattr)
 
 	prog->expected_attach_type = attr->expected_attach_type;
 	prog->aux->attach_btf_id = attr->attach_btf_id;
+
+	if (attr->attach_btf_id && !attr->attach_prog_fd) {
+		struct btf *btf;
+
+		btf = bpf_get_btf_vmlinux();
+		if (IS_ERR(btf))
+			return PTR_ERR(btf);
+		if (!btf)
+			return -EINVAL;
+
+		btf_get(btf);
+		prog->aux->attach_btf = btf;
+	}
+
 	if (attr->attach_prog_fd) {
 		struct bpf_prog *dst_prog;
 
@@ -2310,6 +2326,8 @@ free_prog_sec:
 	free_uid(prog->aux->user);
 	security_bpf_prog_free(prog->aux);
 free_prog:
+	if (prog->aux->attach_btf)
+		btf_put(prog->aux->attach_btf);
 	bpf_prog_free(prog);
 	return err;
 }
@@ -2672,7 +2690,7 @@ static int bpf_tracing_prog_attach(struct bpf_prog *prog,
 			goto out_put_prog;
 		}
 
-		key = bpf_trampoline_compute_key(tgt_prog, btf_id);
+		key = bpf_trampoline_compute_key(tgt_prog, NULL, btf_id);
 	}
 
 	link = kzalloc(sizeof(*link), GFP_USER);
@@ -3651,7 +3669,7 @@ static int bpf_prog_get_info_by_fd(struct file *file,
 	}
 
 	if (prog->aux->btf)
-		info.btf_id = btf_id(prog->aux->btf);
+		info.btf_id = btf_obj_id(prog->aux->btf);
 
 	ulen = info.nr_func_info;
 	info.nr_func_info = prog->aux->func_info_cnt;
@@ -3754,7 +3772,7 @@ static int bpf_map_get_info_by_fd(struct file *file,
 	memcpy(info.name, map->name, sizeof(map->name));
 
 	if (map->btf) {
-		info.btf_id = btf_id(map->btf);
+		info.btf_id = btf_obj_id(map->btf);
 		info.btf_key_type_id = map->btf_key_type_id;
 		info.btf_value_type_id = map->btf_value_type_id;
 	}
