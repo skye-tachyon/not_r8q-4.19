@@ -160,6 +160,7 @@ again:
 		}
 
                 /* set info->task and info->tid */
+		info->task = curr_task;
 		if (curr_tid == info->tid) {
 			curr_fd = info->fd;
 		} else {
