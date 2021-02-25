@@ -266,7 +266,7 @@ static inline int task_has_dl_policy(struct task_struct *p)
  */
 #define shr_bound(val, shift)							\
 	(val >> min_t(typeof(shift), shift, BITS_PER_TYPE(typeof(val)) - 1))
-	
+
 /*
  * !! For sched_setattr_nocheck() (kernel) only !!
  *
