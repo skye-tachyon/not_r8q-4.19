@@ -2643,9 +2643,6 @@ unsigned long uclamp_rq_util_with(struct rq *rq, unsigned long util,
 	if (!static_branch_likely(&sched_uclamp_used))
 		return util;
 
-	min_util = READ_ONCE(rq->uclamp[UCLAMP_MIN].value);
-	max_util = READ_ONCE(rq->uclamp[UCLAMP_MAX].value);
-
 	if (p) {
 		min_util = uclamp_eff_value(p, UCLAMP_MIN);
 		max_util = uclamp_eff_value(p, UCLAMP_MAX);
