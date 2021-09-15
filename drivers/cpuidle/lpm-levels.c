@@ -899,7 +899,6 @@ static int lpm_probe(struct platform_device *pdev)
 {
 	int ret;
 	int size;
-	unsigned int cpu;
 	struct kobject *module_kobj = NULL;
 	struct md_region md_entry;
 
