@@ -345,7 +345,7 @@
 	};
 
 	chosen {
-		bootargs = "rcu_nocbs=0-7 kpti=off cgroup.memory=nokmem cgroup_disable=pressure";
+		bootargs = "noirqdebug rcu_nocbs=0-7 kpti=off cgroup.memory=nokmem cgroup_disable=pressure";
 	};
 
 	firmware: firmware {
