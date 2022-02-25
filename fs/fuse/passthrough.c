@@ -59,7 +59,7 @@ static void fuse_invalidate_inode_pages_range(struct inode *fuse_inode, loff_t s
 	invalidate_inode_pages2_range(fuse_inode->i_mapping, start_index, end_index);
 }
 
-static void fuse_copyattr(struct file *dst_file, struct file *src_file)
+void fuse_copyattr(struct file *dst_file, struct file *src_file)
 {
 	struct inode *dst = file_inode(dst_file);
 	struct inode *src = file_inode(src_file);
