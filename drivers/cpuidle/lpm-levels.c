@@ -761,9 +761,7 @@ static bool psci_enter_sleep(struct lpm_cpu *cpu, int idx, bool from_idle)
 	 */
 
 	if (!idx) {
-		stop_critical_timings();
 		cpu_do_idle();
-		start_critical_timings();
 		return true;
 	}
 
@@ -779,11 +777,9 @@ static bool psci_enter_sleep(struct lpm_cpu *cpu, int idx, bool from_idle)
 
 	update_debug_pc_event(CPU_ENTER, state_id,
 			0xdeaffeed, 0xdeaffeed, from_idle);
-	stop_critical_timings();
 
 	success = !arm_cpuidle_suspend(state_id);
 
-	start_critical_timings();
 	update_debug_pc_event(CPU_EXIT, state_id,
 			success, 0xdeaffeed, from_idle);
 
@@ -833,10 +829,8 @@ exit:
 
 	cluster_unprepare(cpu->parent, cpumask, idx, true, end_time, success);
 	cpu_unprepare(cpu, idx, true);
-	dev->last_residency = ktime_us_delta(ktime_get(), start);
 	sec_debug_cpu_lpm_log(dev->cpu, idx, success, 0);
-
-	local_irq_enable();
+	
 	return idx;
 }
 
