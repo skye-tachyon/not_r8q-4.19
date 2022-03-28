@@ -706,26 +706,10 @@ static int lpm_cpuidle_select(struct cpuidle_driver *drv,
 static int lpm_cpuidle_enter(struct cpuidle_device *dev,
 		struct cpuidle_driver *drv, int idx)
 {
-	bool success = false;
-	ktime_t start = ktime_get();
-	uint64_t start_time = ktime_to_ns(start), end_time;
-
-	lpm_stats_cpu_enter(idx, start_time);
-
 	if (need_resched())
-		goto exit;
+		return idx;
 
-	sec_debug_cpu_lpm_log(dev->cpu, idx, 0, 1);
-	sec_debug_sched_msg("+Idle(%s)", cpu->levels[idx].name);
 	wfi();
-	success = true;
-	sec_debug_sched_msg("-Idle(%s)", cpu->levels[idx].name);
-
-exit:
-	end_time = ktime_to_ns(ktime_get());
-	lpm_stats_cpu_exit(idx, end_time, success);
-
-	sec_debug_cpu_lpm_log(dev->cpu, idx, success, 0);
 	
 	return idx;
 }
