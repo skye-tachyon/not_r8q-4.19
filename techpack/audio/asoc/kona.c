@@ -44,7 +44,6 @@
 #include <linux/mfd/cs35l41/big_data.h>
 #include "../../../sound/soc/samsung/bigdata_cirrus_sysfs_cb.h"
 #endif
-#include <linux/pm_qos.h>
 
 #define DRV_NAME "kona-asoc-snd"
 #define __CHIPSET__ "KONA "
@@ -6009,33 +6008,6 @@ static struct snd_soc_ops msm_mi2s_be_ops = {
 	.shutdown = msm_mi2s_snd_shutdown,
 };
 
-static int msm_ull_fe_qos_prepare(struct snd_pcm_substream *substream)
-{
-	cpumask_t mask;
-
-	if (pm_qos_request_active(&substream->latency_pm_qos_req))
-		pm_qos_remove_request(&substream->latency_pm_qos_req);
-
-	pr_info("%s:\n", __func__);
-	cpumask_clear(&mask);
-	cpumask_set_cpu(0, &mask); /* affine to core 0 */
-	cpumask_set_cpu(1, &mask); /* affine to core 1 */
-	cpumask_set_cpu(2, &mask); /* affine to core 2 */
-	cpumask_set_cpu(3, &mask); /* affine to core 3 */
-	cpumask_copy(&substream->latency_pm_qos_req.cpus_affine, &mask);
-
-	substream->latency_pm_qos_req.type = PM_QOS_REQ_AFFINE_CORES;
-
-	pm_qos_add_request(&substream->latency_pm_qos_req,
-			  PM_QOS_CPU_DMA_LATENCY,
-			  MSM_LL_QOS_VALUE);
-	return 0;
-}
-
-static struct snd_soc_ops msm_ull_fe_qos_ops = {
-	.prepare = msm_ull_fe_qos_prepare,
-};
-
 static struct snd_soc_ops msm_cdc_dma_be_ops = {
 	.startup = msm_snd_cdc_dma_startup,
 	.hw_params = msm_snd_cdc_dma_hw_params,
@@ -6856,7 +6828,6 @@ static struct snd_soc_dai_link msm_common_dai_links[] = {
 		.ignore_pmdown_time = 1,
 		 /* this dainlink has playback support */
 		.id = MSM_FRONTEND_DAI_MULTIMEDIA8,
-		.ops = &msm_ull_fe_qos_ops,
 	},
 	/* HDMI Hostless */
 	{/* hw:x,14 */
