@@ -49,8 +49,8 @@ const char *ndev_prefix = "rmnet_data";
 static struct rmnet_data_pm_config *cfg;
 
 /* rps boosting */
-#define ARGOS_RMNET_RPS_BIG_MASK "70" /* big core*/
-#define ARGOS_RMNET_RPS_DEFAULT_MASK "7d" /* default */
+#define ARGOS_RMNET_RPS_BIG_MASK "24" /* big core*/
+#define ARGOS_RMNET_RPS_DEFAULT_MASK "30" /* default */
 #define ARGOS_RMNET_RPS_BOOST_MBPS 300
 static unsigned int rmnet_rps_boost_mbps = ARGOS_RMNET_RPS_BOOST_MBPS;
 module_param(rmnet_rps_boost_mbps, uint, 0644);
