@@ -30,7 +30,11 @@ extern unsigned int sysctl_sched_min_granularity;
 extern unsigned int sysctl_sched_sync_hint_enable;
 extern unsigned int sysctl_sched_cstate_aware;
 extern unsigned int sysctl_sched_wakeup_granularity;
+<<<<<<< HEAD
 extern unsigned int sysctl_sched_child_runs_first;
+=======
+#ifdef CONFIG_SCHED_WALT
+>>>>>>> bd43c21df9b41 (sched/debug: Remove the /proc/sys/kernel/sched_child_runs_first sysctl)
 extern unsigned int sysctl_sched_force_lb_enable;
 #ifdef CONFIG_SCHED_WALT
 extern unsigned int sysctl_sched_capacity_margin_up[MAX_MARGIN_LEVELS];
