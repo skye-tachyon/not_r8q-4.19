@@ -8,6 +8,7 @@
 #include <linux/sched/cpufreq.h>
 #include <linux/sched/topology.h>
 #include <linux/types.h>
+#include <linux/cpufreq.h>
 
 /**
  * em_cap_state - Capacity state of a performance domain
@@ -99,7 +100,7 @@ static inline unsigned long em_pd_energy(struct em_perf_domain *pd,
 				unsigned long max_util, unsigned long sum_util,
 				unsigned long allowed_cpu_cap)
 {
-	unsigned long freq, scale_cpu;
+	unsigned long freq, min_freq, scale_cpu;
 	struct em_cap_state *cs;
 	int i, cpu;
 
@@ -120,6 +121,9 @@ static inline unsigned long em_pd_energy(struct em_perf_domain *pd,
 	
 	max_util = min(max_util, allowed_cpu_cap);
 	freq = map_util_freq(max_util, cs->frequency, scale_cpu);
+	min_freq = cpufreq_quick_get_min(cpu);
+
+	freq = (freq > min_freq) ? freq : min_freq;
 
 	/*
 	 * Find the lowest capacity state of the Energy Model above the
