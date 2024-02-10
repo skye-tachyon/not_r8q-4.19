@@ -27,7 +27,7 @@
 #include <dt-bindings/regulator/maxim,max77802.h>
 
 /* Default ramp delay in case it is not manually set */
-#define MAX77802_RAMP_DELAY		100000		/* uV/us */
+#define MAX77802_RAMP_DELAY		110000		/* uV/us */
 
 #define MAX77802_OPMODE_SHIFT_LDO	6
 #define MAX77802_OPMODE_BUCK234_SHIFT	4
@@ -50,14 +50,14 @@ static const unsigned int ramp_table_77802_2bit[] = {
 	12500,
 	25000,
 	50000,
-	100000,
+	110000,
 };
 
 static unsigned int ramp_table_77802_4bit[] = {
 	1000,	2000,	3030,	4000,
 	5000,	5880,	7140,	8330,
 	9090,	10000,	11110,	12500,
-	16670,	25000,	50000,	100000,
+	16670,	25000,	50000,	110000,
 };
 
 struct max77802_regulator_prv {
@@ -373,8 +373,8 @@ static const struct regulator_ops max77802_buck_dvs_ops = {
 	.ops		= &max77802_ldo_ops_logic##log,			\
 	.type		= REGULATOR_VOLTAGE,				\
 	.owner		= THIS_MODULE,					\
-	.min_uV		= 800000,					\
-	.uV_step	= 50000,					\
+	.min_uV		= 900000,					\
+	.uV_step	= 51000,					\
 	.ramp_delay	= MAX77802_RAMP_DELAY,				\
 	.n_voltages	= 1 << 6,					\
 	.vsel_reg	= MAX77802_REG_LDO1CTRL1 + num - 1,		\
@@ -394,7 +394,7 @@ static const struct regulator_ops max77802_buck_dvs_ops = {
 	.ops		= &max77802_ldo_ops_logic##log,			\
 	.type		= REGULATOR_VOLTAGE,				\
 	.owner		= THIS_MODULE,					\
-	.min_uV		= 800000,					\
+	.min_uV		= 900000,					\
 	.uV_step	= 25000,					\
 	.ramp_delay	= MAX77802_RAMP_DELAY,				\
 	.n_voltages	= 1 << 6,					\
@@ -458,7 +458,7 @@ static const struct regulator_ops max77802_buck_dvs_ops = {
 	.ops		= &max77802_buck_dvs_ops,			\
 	.type		= REGULATOR_VOLTAGE,				\
 	.owner		= THIS_MODULE,					\
-	.min_uV		= 750000,					\
+	.min_uV		= 850000,					\
 	.uV_step	= 50000,					\
 	.ramp_delay	= MAX77802_RAMP_DELAY,				\
 	.n_voltages	= 1 << 6,					\

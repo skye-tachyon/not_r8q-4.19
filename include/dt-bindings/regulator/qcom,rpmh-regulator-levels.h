@@ -21,7 +21,8 @@
 #define RPMH_REGULATOR_LEVEL_NOM_L2	336
 #define RPMH_REGULATOR_LEVEL_TURBO	384
 #define RPMH_REGULATOR_LEVEL_TURBO_L1	416
-#define RPMH_REGULATOR_LEVEL_MAX	65535
+#define RPMH_REGULATOR_LEVEL_TURBO_L2	512
+#define RPMH_REGULATOR_LEVEL_TURBO_NO_CPR  624
 
 /*
  * These set constants may be used as the value for qcom,set of an RPMh
