@@ -180,6 +180,12 @@ static bool sleep_disabled;
 module_param_named(sleep_disabled, sleep_disabled, bool, 0664);
 #endif
 
+bool lpm_sleep_disabled(void)
+{
+	return sleep_disabled;
+}
+EXPORT_SYMBOL(lpm_sleep_disabled);
+
 /**
  * msm_cpuidle_get_deep_idle_latency - Get deep idle latency value
  *
