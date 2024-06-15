@@ -54,7 +54,7 @@ struct binder_buffer {
 	size_t data_size;
 	size_t offsets_size;
 	size_t extra_buffers_size;
-	unsigned long user_data;
+	void __user *user_data;
 	int pid;
 };
 
@@ -101,7 +101,7 @@ struct binder_alloc {
 	spinlock_t lock;
 	struct vm_area_struct *vma;
 	struct mm_struct *vma_vm_mm;
-	unsigned long buffer;
+	void __user *buffer;
 	struct list_head buffers;
 	struct rb_root free_buffers;
 	struct rb_root allocated_buffers;
@@ -144,8 +144,6 @@ void binder_alloc_print_allocated(struct seq_file *m,
 				  struct binder_alloc *alloc);
 void binder_alloc_print_pages(struct seq_file *m,
 			      struct binder_alloc *alloc);
-extern int binder_buffer_pool_create(void);
-extern void binder_buffer_pool_destroy(void);
 
 /**
  * binder_alloc_get_free_async_space() - get free space available for async
