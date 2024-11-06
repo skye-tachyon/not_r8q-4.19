@@ -162,6 +162,24 @@ config SEC_NFC_V2
 	  Say Y here to compile support for SAMSUNG NFC driver into the
 	  kernel.
 
+config SEC_NFC_DUPLICATED_IRQ_WQ_LSI
+	bool "NFC duplicated irq wq lsi"
+	default n
+	help
+	  Enable NFC duplicated irq LSI w/a.
+	  If the interrupt occurs twice continuously, the i2c_info.
+	  read_irq value is returned to the previous value.
+	  Apply W/A received from LSI
+
+config SEC_NFC_DUPLICATED_IRQ_WQ_QC
+	bool "NFC duplicated irq wq qc"
+	default n
+	help
+	  Enable NFC duplicated irq QC solution.
+	  add the IRQF_NO_SUSPEND flag during interrupt registration
+	  and do not use enable_irq_wake() api to configure the GPIO
+	  as wakeup capable.
+
 config ESE_P3_LSI
         bool "LSI ese driver"
         depends on SPI

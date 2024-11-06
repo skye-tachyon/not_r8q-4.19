@@ -134,6 +134,15 @@ static irqreturn_t sec_nfc_irq_thread_fn(int irq, void *dev_id)
 	}
 
 	info->i2c_info.read_irq += SEC_NFC_READ_TIMES;
+
+#ifdef CONFIG_SEC_NFC_DUPLICATED_IRQ_WQ_LSI
+	if (info->i2c_info.read_irq >= SEC_NFC_READ_TIMES * 2) {
+		NFC_LOG_ERR("AP called duplicated IRQ handler\n");
+		info->i2c_info.read_irq -= SEC_NFC_READ_TIMES;
+		mutex_unlock(&info->i2c_info.read_mutex);
+		return IRQ_HANDLED;
+	}
+#endif
 	mutex_unlock(&info->i2c_info.read_mutex);
 
 	wake_up_interruptible(&info->i2c_info.read_wait);
@@ -425,7 +434,11 @@ int sec_nfc_i2c_probe(struct i2c_client *client)
 	gpio_direction_input(pdata->irq);
 
 	ret = request_threaded_irq(client->irq, NULL, sec_nfc_irq_thread_fn,
+#ifdef CONFIG_SEC_NFC_DUPLICATED_IRQ_WQ_QC
+			IRQF_TRIGGER_RISING | IRQF_ONESHOT | IRQF_NO_SUSPEND, SEC_NFC_DRIVER_NAME,
+#else
 			IRQF_TRIGGER_RISING | IRQF_ONESHOT, SEC_NFC_DRIVER_NAME,
+#endif
 			info);
 	if (ret < 0) {
 		NFC_LOG_ERR("probe() failed to register IRQ handler\n");
@@ -435,7 +448,11 @@ int sec_nfc_i2c_probe(struct i2c_client *client)
 
 	if (of_get_property(dev->of_node, "sec-nfc,ldo_control", NULL)) {
 		if (pdata->nfc_pvdd != NULL) {
+#ifdef CONFIG_BATTERY_SAMSUNG
 			if (!lpcharge) {
+#else
+			if (1/*!lpcharge*/) {
+#endif
 				ret = sec_nfc_regulator_onoff(pdata, NFC_I2C_LDO_ON);
 				if (ret < 0)
 					NFC_LOG_ERR("regulator_on fail err = %d\n", ret);
@@ -445,6 +462,8 @@ int sec_nfc_i2c_probe(struct i2c_client *client)
 #else
 				usleep_range(1000, 1100);
 #endif
+			} else {
+				NFC_LOG_ERR("regulator off at LPM: %d\n", lpcharge);
 			}
 		}
 	} else {
