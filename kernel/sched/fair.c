@@ -8937,77 +8937,6 @@ find_idlest_group(struct sched_domain *sd, struct task_struct *p, int this_cpu)
 	return idlest;
 }
 
-static void update_idle_cpu_scan(struct lb_env *env,
-				 unsigned long sum_util)
-{
-	struct sched_domain_shared *sd_share;
-	int llc_weight, pct;
-	u64 x, y, tmp;
-	/*
-	 * Update the number of CPUs to scan in LLC domain, which could
-	 * be used as a hint in select_idle_cpu(). The update of sd_share
-	 * could be expensive because it is within a shared cache line.
-	 * So the write of this hint only occurs during periodic load
-	 * balancing, rather than CPU_NEWLY_IDLE, because the latter
-	 * can fire way more frequently than the former.
-	 */
-	if (!sched_feat(SIS_UTIL) || env->idle == CPU_NEWLY_IDLE)
-		return;
-
-	llc_weight = per_cpu(sd_llc_size, env->dst_cpu);
-	if (env->sd->span_weight != llc_weight)
-		return;
-
-	sd_share = rcu_dereference(per_cpu(sd_llc_shared, env->dst_cpu));
-	if (!sd_share)
-		return;
-
-	/*
-	 * The number of CPUs to search drops as sum_util increases, when
-	 * sum_util hits 85% or above, the scan stops.
-	 * The reason to choose 85% as the threshold is because this is the
-	 * imbalance_pct(117) when a LLC sched group is overloaded.
-	 *
-	 * let y = SCHED_CAPACITY_SCALE - p * x^2                       [1]
-	 * and y'= y / SCHED_CAPACITY_SCALE
-	 *
-	 * x is the ratio of sum_util compared to the CPU capacity:
-	 * x = sum_util / (llc_weight * SCHED_CAPACITY_SCALE)
-	 * y' is the ratio of CPUs to be scanned in the LLC domain,
-	 * and the number of CPUs to scan is calculated by:
-	 *
-	 * nr_scan = llc_weight * y'                                    [2]
-	 *
-	 * When x hits the threshold of overloaded, AKA, when
-	 * x = 100 / pct, y drops to 0. According to [1],
-	 * p should be SCHED_CAPACITY_SCALE * pct^2 / 10000
-	 *
-	 * Scale x by SCHED_CAPACITY_SCALE:
-	 * x' = sum_util / llc_weight;                                  [3]
-	 *
-	 * and finally [1] becomes:
-	 * y = SCHED_CAPACITY_SCALE -
-	 *     x'^2 * pct^2 / (10000 * SCHED_CAPACITY_SCALE)            [4]
-	 *
-	 */
-	/* equation [3] */
-	x = sum_util;
-	do_div(x, llc_weight);
-
-	/* equation [4] */
-	pct = env->sd->imbalance_pct;
-	tmp = x * x * pct * pct;
-	do_div(tmp, 10000 * SCHED_CAPACITY_SCALE);
-	tmp = min_t(long, tmp, SCHED_CAPACITY_SCALE);
-	y = SCHED_CAPACITY_SCALE - tmp;
-
-	/* equation [2] */
-	y *= llc_weight;
-	do_div(y, SCHED_CAPACITY_SCALE);
-	if ((int)y != sd_share->nr_idle_scan)
-		WRITE_ONCE(sd_share->nr_idle_scan, (int)y);
-}
-
 /**
  * update_sd_lb_stats - Update sched_domain's statistics for load balancing.
  * @env: The load balancing environment.
@@ -9073,8 +9002,6 @@ next_group:
 
 		WRITE_ONCE(rd->overutilized, SG_OVERUTILIZED);
 	}
-
-	update_idle_cpu_scan(env, sum_util);
 }
 
 /**
