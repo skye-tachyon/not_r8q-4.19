@@ -10,6 +10,7 @@
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
+#include <linux/lockdep.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
@@ -24,7 +25,7 @@
 
 #define RPMH_TIMEOUT_MS			msecs_to_jiffies(10000)
 
-#define DEFINE_RPMH_MSG_ONSTACK(dev, s, q, name)	\
+#define DEFINE_RPMH_MSG_ONSTACK(device, s, q, name)	\
 	struct rpmh_request name = {			\
 		.msg = {				\
 			.state = s,			\
@@ -34,7 +35,7 @@
 		},					\
 		.cmd = { { 0 } },			\
 		.completion = q,			\
-		.dev = dev,				\
+		.dev = device,				\
 		.needs_free = false,				\
 	}
 
@@ -80,50 +81,27 @@ static int check_ctrlr_state(struct rpmh_ctrlr *ctrlr, enum rpmh_state state)
 {
 	int ret = 0;
 
-	/* Do not allow setting active votes when in solver mode */
+	if (state != RPMH_ACTIVE_ONLY_STATE)
+		return ret;
+
+	if (!(ctrlr->flags & SOLVER_PRESENT))
+		return ret;
+
+	/* Do not allow sending active votes when in solver mode */
 	spin_lock(&ctrlr->cache_lock);
-	if (ctrlr->in_solver_mode && state == RPMH_ACTIVE_ONLY_STATE)
+	if (ctrlr->in_solver_mode)
 		ret = -EBUSY;
 	spin_unlock(&ctrlr->cache_lock);
 
 	return ret;
 }
 
-/**
- * rpmh_mode_solver_set: Indicate that the RSC controller hardware has
- * been configured to be in solver mode
- *
- * @dev: the device making the request
- * @enable: Boolean value indicating if the controller is in solver mode.
- *
- * When solver mode is enabled, passthru API will not be able to send wake
- * votes, just awake and active votes.
- */
-int rpmh_mode_solver_set(const struct device *dev, bool enable)
-{
-	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
-
-	spin_lock(&ctrlr->cache_lock);
-	rpmh_rsc_mode_solver_set(ctrlr_to_drv(ctrlr), enable);
-	ctrlr->in_solver_mode = enable;
-	spin_unlock(&ctrlr->cache_lock);
-
-	return 0;
-}
-EXPORT_SYMBOL(rpmh_mode_solver_set);
-
-void rpmh_tx_done(const struct tcs_request *msg, int r)
+void rpmh_tx_done(const struct tcs_request *msg)
 {
 	struct rpmh_request *rpm_msg = container_of(msg, struct rpmh_request,
 						    msg);
 	struct completion *compl = rpm_msg->completion;
 	bool free = rpm_msg->needs_free;
-
-	rpm_msg->err = r;
-
-	if (r)
-		dev_err(rpm_msg->dev, "RPMH TX fail in msg addr=%#x, err=%d\n",
-			rpm_msg->msg.cmds[0].addr, r);
 
 	if (!compl)
 		goto exit;
@@ -155,8 +133,10 @@ static struct cache_req *cache_rpm_request(struct rpmh_ctrlr *ctrlr,
 					   struct tcs_cmd *cmd)
 {
 	struct cache_req *req;
+	unsigned long flags;
+	u32 old_sleep_val, old_wake_val;
 
-	spin_lock(&ctrlr->cache_lock);
+	spin_lock_irqsave(&ctrlr->cache_lock, flags);
 	req = __find_req(ctrlr, cmd->addr);
 	if (req)
 		goto existing;
@@ -169,35 +149,29 @@ static struct cache_req *cache_rpm_request(struct rpmh_ctrlr *ctrlr,
 
 	req->addr = cmd->addr;
 	req->sleep_val = req->wake_val = UINT_MAX;
-	INIT_LIST_HEAD(&req->list);
 	list_add_tail(&req->list, &ctrlr->cache);
 
 existing:
+	old_sleep_val = req->sleep_val;
+	old_wake_val = req->wake_val;
+
 	switch (state) {
 	case RPMH_ACTIVE_ONLY_STATE:
-		if (req->sleep_val != UINT_MAX) {
-			req->wake_val = cmd->data;
-			ctrlr->dirty = true;
-		}
-		break;
 	case RPMH_WAKE_ONLY_STATE:
-		if (req->wake_val != cmd->data) {
-			req->wake_val = cmd->data;
-			ctrlr->dirty = true;
-		}
+		req->wake_val = cmd->data;
 		break;
 	case RPMH_SLEEP_STATE:
-		if (req->sleep_val != cmd->data) {
-			req->sleep_val = cmd->data;
-			ctrlr->dirty = true;
-		}
-		break;
-	default:
+		req->sleep_val = cmd->data;
 		break;
 	}
 
+	ctrlr->dirty |= (req->sleep_val != old_sleep_val ||
+			 req->wake_val != old_wake_val) &&
+			 req->sleep_val != UINT_MAX &&
+			 req->wake_val != UINT_MAX;
+
 unlock:
-	spin_unlock(&ctrlr->cache_lock);
+	spin_unlock_irqrestore(&ctrlr->cache_lock, flags);
 
 	return req;
 }
@@ -221,8 +195,6 @@ static int __rpmh_write(const struct device *dev, enum rpmh_state state,
 	struct cache_req *req;
 	int i;
 
-	rpm_msg->msg.state = state;
-
 	/* Cache the request in our store and link the payload */
 	for (i = 0; i < rpm_msg->msg.num_cmds; i++) {
 		req = cache_rpm_request(ctrlr, state, &rpm_msg->msg.cmds[i]);
@@ -230,15 +202,13 @@ static int __rpmh_write(const struct device *dev, enum rpmh_state state,
 			return PTR_ERR(req);
 	}
 
-	rpm_msg->msg.state = state;
-
 	if (state == RPMH_ACTIVE_ONLY_STATE) {
 		WARN_ON(irqs_disabled());
 		ret = rpmh_rsc_send_data(ctrlr_to_drv(ctrlr), &rpm_msg->msg);
 	} else {
 		/* Clean up our call by spoofing tx_done */
 		ret = 0;
-		rpmh_tx_done(&rpm_msg->msg, ret);
+		rpmh_tx_done(&rpm_msg->msg);
 	}
 
 	return ret;
@@ -273,8 +243,8 @@ static int __fill_rpmh_msg(struct rpmh_request *req, enum rpmh_state state,
 int rpmh_write_async(const struct device *dev, enum rpmh_state state,
 		     const struct tcs_cmd *cmd, u32 n)
 {
-	struct rpmh_request *rpm_msg;
 	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
+	struct rpmh_request *rpm_msg;
 	int ret;
 
 	if (rpmh_standalone)
@@ -317,9 +287,6 @@ int rpmh_write(const struct device *dev, enum rpmh_state state,
 	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
 	int ret;
 
-	if (!cmd || !n || n > MAX_RPMH_PAYLOAD)
-		return -EINVAL;
-
 	if (rpmh_standalone)
 		return 0;
 
@@ -327,18 +294,21 @@ int rpmh_write(const struct device *dev, enum rpmh_state state,
 	if (ret)
 		return ret;
 
-	memcpy(rpm_msg.cmd, cmd, n * sizeof(*cmd));
-	rpm_msg.msg.num_cmds = n;
+	ret = __fill_rpmh_msg(&rpm_msg, state, cmd, n);
+	if (ret)
+		return ret;
 
 	ret = __rpmh_write(dev, state, &rpm_msg);
 	if (ret)
 		return ret;
-
-	ret = wait_for_completion_timeout(&compl, RPMH_TIMEOUT_MS);
-	if (!ret) {
-		rpmh_rsc_debug(ctrlr_to_drv(ctrlr), &compl);
-		return -ETIMEDOUT;
-	}
+	if (!oops_in_progress) {
+		ret = wait_for_completion_timeout(&compl, RPMH_TIMEOUT_MS);
+		if (!ret) {
+			rpmh_rsc_debug(ctrlr_to_drv(ctrlr),&compl);
+			return -ETIMEDOUT;
+		}
+	} else
+		mdelay(100);
 
 	return 0;
 }
@@ -346,10 +316,12 @@ EXPORT_SYMBOL(rpmh_write);
 
 static void cache_batch(struct rpmh_ctrlr *ctrlr, struct batch_cache_req *req)
 {
+	unsigned long flags;
 
-	spin_lock(&ctrlr->cache_lock);
+	spin_lock_irqsave(&ctrlr->cache_lock, flags);
 	list_add_tail(&req->list, &ctrlr->batch_cache);
-	spin_unlock(&ctrlr->cache_lock);
+	ctrlr->dirty = true;
+	spin_unlock_irqrestore(&ctrlr->cache_lock, flags);
 }
 
 static int flush_batch(struct rpmh_ctrlr *ctrlr)
@@ -360,7 +332,6 @@ static int flush_batch(struct rpmh_ctrlr *ctrlr)
 	int i;
 
 	/* Send Sleep/Wake requests to the controller, expect no response */
-	spin_lock(&ctrlr->cache_lock);
 	list_for_each_entry(req, &ctrlr->batch_cache, list) {
 		for (i = 0; i < req->count; i++) {
 			rpm_msg = req->rpm_msgs + i;
@@ -370,22 +341,8 @@ static int flush_batch(struct rpmh_ctrlr *ctrlr)
 				break;
 		}
 	}
-	spin_unlock(&ctrlr->cache_lock);
 
 	return ret;
-}
-
-static void invalidate_batch(struct rpmh_ctrlr *ctrlr)
-{
-	struct batch_cache_req *req, *tmp;
-
-	spin_lock(&ctrlr->cache_lock);
-	list_for_each_entry_safe(req, tmp, &ctrlr->batch_cache, list) {
-		list_del(&req->list);
-		kfree(req);
-	}
-	INIT_LIST_HEAD(&ctrlr->batch_cache);
-	spin_unlock(&ctrlr->cache_lock);
 }
 
 /**
@@ -417,15 +374,15 @@ int rpmh_write_batch(const struct device *dev, enum rpmh_state state,
 	int ret, i;
 	void *ptr;
 
-	if (!cmd || !n)
-		return -EINVAL;
-
 	if (rpmh_standalone)
 		return 0;
 
 	ret = check_ctrlr_state(ctrlr, state);
 	if (ret)
 		return ret;
+
+	if (!cmd || !n)
+		return -EINVAL;
 
 	while (n[count] > 0)
 		count++;
@@ -470,16 +427,19 @@ int rpmh_write_batch(const struct device *dev, enum rpmh_state state,
 
 	time_left = RPMH_TIMEOUT_MS;
 	while (i--) {
-		time_left = wait_for_completion_timeout(&compls[i], time_left);
-		if (!time_left) {
-			/*
-			 * Better hope they never finish because they'll signal
-			 * the completion that we're going to free once
-			 * we've returned from this function.
-			 */
-			rpmh_rsc_debug(ctrlr_to_drv(ctrlr), &compls[i]);
-			BUG_ON(1);
-		}
+		if (!oops_in_progress) {
+			time_left = wait_for_completion_timeout(&compls[i], time_left);
+			if (!time_left) {
+				/*
+				 * Better hope they never finish because they'll signal
+				 * the completion that we're going to free once
+				 * we've returned from this function.
+				 */
+                          	rpmh_rsc_debug(ctrlr_to_drv(ctrlr), &compls[i]);
+				BUG_ON(1);
+			}
+		} else
+			mdelay(100);
 	}
 
 	kfree(ptr);
@@ -526,11 +486,10 @@ static int is_req_valid(struct cache_req *req)
 		req->sleep_val != req->wake_val);
 }
 
-static int send_single(const struct device *dev, enum rpmh_state state,
+static int send_single(struct rpmh_ctrlr *ctrlr, enum rpmh_state state,
 		       u32 addr, u32 data)
 {
-	DEFINE_RPMH_MSG_ONSTACK(dev, state, NULL, rpm_msg);
-	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
+	DEFINE_RPMH_MSG_ONSTACK(NULL, state, NULL, rpm_msg);
 
 	/* Wake sets are always complete and sleep sets are not */
 	rpm_msg.msg.wait_for_compl = (state == RPMH_WAKE_ONLY_STATE);
@@ -541,98 +500,238 @@ static int send_single(const struct device *dev, enum rpmh_state state,
 	return rpmh_rsc_write_ctrl_data(ctrlr_to_drv(ctrlr), &rpm_msg.msg);
 }
 
-/**
- * rpmh_flush: Flushes the buffered active and sleep sets to TCS
- *
- * @dev: The device making the request
- *
- * Return: -EBUSY if the controller is busy, probably waiting on a response
- * to a RPMH request sent earlier.
- *
- * This function is always called from the sleep code from the last CPU
- * that is powering down the entire system. Since no other RPMH API would be
- * executing at this time, it is safe to run lockless.
- */
-int rpmh_flush(const struct device *dev)
+int _rpmh_flush(struct rpmh_ctrlr *ctrlr)
 {
 	struct cache_req *p;
-	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
-	int ret;
-
-	if (rpmh_standalone)
-		return 0;
+	int ret = 0;
 
 	if (!ctrlr->dirty) {
 		pr_debug("Skipping flush, TCS has latest data.\n");
-		return 0;
+		return ret;
 	}
 
-	do {
-		ret = rpmh_rsc_invalidate(ctrlr_to_drv(ctrlr));
-	} while (ret == -EAGAIN);
+	/* Invalidate the TCSes first to avoid stale data */
+	rpmh_rsc_invalidate(ctrlr_to_drv(ctrlr));
 
 	/* First flush the cached batch requests */
 	ret = flush_batch(ctrlr);
 	if (ret)
 		return ret;
 
-	/*
-	 * Nobody else should be calling this function other than system PM,
-	 * hence we can run without locks.
-	 */
 	list_for_each_entry(p, &ctrlr->cache, list) {
 		if (!is_req_valid(p)) {
-			pr_debug("%s: skipping RPMH req: a:%#x s:%#x w:%#x",
+			pr_debug("%s: skipping RPMH req: a:%#x s:%#x w:%#x\n",
 				 __func__, p->addr, p->sleep_val, p->wake_val);
 			continue;
 		}
-		ret = send_single(dev, RPMH_SLEEP_STATE, p->addr, p->sleep_val);
+		ret = send_single(ctrlr, RPMH_SLEEP_STATE, p->addr,
+				  p->sleep_val);
 		if (ret)
 			return ret;
-		ret = send_single(dev, RPMH_WAKE_ONLY_STATE,
-				  p->addr, p->wake_val);
+		ret = send_single(ctrlr, RPMH_WAKE_ONLY_STATE, p->addr,
+				  p->wake_val);
 		if (ret)
 			return ret;
 	}
 
 	ctrlr->dirty = false;
 
-	return 0;
+	return ret;
 }
-EXPORT_SYMBOL(rpmh_flush);
 
 /**
- * rpmh_invalidate: Invalidate all sleep and active sets
- * sets.
+ * rpmh_flush() - Flushes the buffered sleep and wake sets to TCSes
  *
- * @dev: The device making the request
+ * @ctrlr: Controller making request to flush cached data
  *
- * Invalidate the sleep and active values in the TCS blocks.
+ * Return:
+ * * 0          - Success
+ * * Error code - Otherwise
  */
-int rpmh_invalidate(const struct device *dev)
+int rpmh_flush(struct rpmh_ctrlr *ctrlr)
 {
-	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
 	int ret;
 
 	if (rpmh_standalone)
 		return 0;
 
-	invalidate_batch(ctrlr);
-	ctrlr->dirty = true;
+	/*
+	 * For RSC that don't have solver mode,
+	 * rpmh_flush() is only called when we think we're running
+	 * on the last CPU with irqs_disabled.
+	 *
+	 * For RSC that have solver mode,
+	 * rpmh_flush() can be invoked with irqs enabled by any CPU.
+	 *
+	 * Conditionally check for irqs_disabled only when solver mode
+	 * is not available.
+	 */
+	if (!(ctrlr->flags & SOLVER_PRESENT))
+		lockdep_assert_irqs_disabled();
 
-	do {
-		ret = rpmh_rsc_invalidate(ctrlr_to_drv(ctrlr));
-	} while (ret == -EAGAIN);
+	/*
+	 * If the lock is busy it means another transaction is on going,
+	 * in such case it's better to abort than spin.
+	 */
+	if (!spin_trylock(&ctrlr->cache_lock))
+		return -EBUSY;
+	ret = _rpmh_flush(ctrlr);
+	spin_unlock(&ctrlr->cache_lock);
 
 	return ret;
+}
+
+/**
+ * rpmh_write_sleep_and_wake: Writes the buffered wake and sleep sets to TCSes
+ *
+ * @dev: The device making the request
+ *
+ * Return:
+ * * 0          - Success
+ * * Error code - Otherwise
+ */
+int rpmh_write_sleep_and_wake(const struct device *dev)
+{
+	return rpmh_flush(get_rpmh_ctrlr(dev));
+}
+EXPORT_SYMBOL(rpmh_write_sleep_and_wake);
+
+/**
+ * rpmh_invalidate: Invalidate sleep and wake sets in batch_cache
+ *
+ * @dev: The device making the request
+ *
+ * Invalidate the sleep and wake values in batch_cache.
+ */
+void rpmh_invalidate(const struct device *dev)
+{
+	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
+	struct batch_cache_req *req, *tmp;
+	unsigned long flags;
+
+	if (rpmh_standalone)
+		return;
+
+	spin_lock_irqsave(&ctrlr->cache_lock, flags);
+	list_for_each_entry_safe(req, tmp, &ctrlr->batch_cache, list) {
+		list_del(&req->list);
+		kfree(req);
+	}
+
+	INIT_LIST_HEAD(&ctrlr->batch_cache);
+	ctrlr->dirty = true;
+	spin_unlock_irqrestore(&ctrlr->cache_lock, flags);
 }
 EXPORT_SYMBOL(rpmh_invalidate);
 
 /**
- * rpmh_ctrlr_idle: Return the controller idle status
+ * rpmh_mode_solver_set: Indicate that the RSC controller hardware has
+ * been configured to be in solver mode
  *
- * @dev: the device making the request
+ * @dev: The device making the request
+ * @enable: Boolean value indicating if the controller is in solver mode.
+ * Return:
+ * * 0          - Success
+ * * Error code - Otherwise
  */
+int rpmh_mode_solver_set(const struct device *dev, bool enable)
+{
+	int ret;
+	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
+
+	if (rpmh_standalone)
+		return 0;
+
+	if (!(ctrlr->flags & SOLVER_PRESENT))
+		return -EINVAL;
+
+	spin_lock(&ctrlr->cache_lock);
+	ret = rpmh_rsc_mode_solver_set(ctrlr_to_drv(ctrlr), enable);
+	if (!ret)
+		ctrlr->in_solver_mode = enable;
+	spin_unlock(&ctrlr->cache_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL(rpmh_mode_solver_set);
+
+
+/**
+ * RPMH Fast Path mode
+ *
+ * - Fast path mode is a lock-less request transmission to AOSS.
+ * - Requests may be sent from interrupt/scheduler context.
+ * - Dedicated fast-path TCS must be available in the RSC.
+ * - Error returned, when dedicated TCS is not available.
+ * - Only one client is expected to call RPMH fast path.
+ * - Serialization of requests is a responsibility of the client.
+ * - Only active state requests may be made through this mode.
+ * - Sleep/Wake requests for the nodes must be made through
+ *   the standard RPMH APIs (locking modes).
+ * - Fast path requests are not cached and sent immediately.
+ * - Fast path requests are all blocking requests.
+ * - Fast path requests do not use AMC completion interrupts,
+ *   therefore will not receive a tx_done callback.
+ */
+
+/**
+ * rpmh_init_fast_path: Initialize TCS request in fast-path TCS
+ *
+ * @dev: The device making the request
+ * @cmd: The {addr, data} to be initialized with.
+ * @n:   The number of @cmd
+ *
+ * Return:
+ * * 0          - Success
+ * * Error code - Otherwise
+ */
+int rpmh_init_fast_path(const struct device *dev,
+			struct tcs_cmd *cmd, int n)
+{
+	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
+	struct tcs_request req;
+
+	if (rpmh_standalone)
+		return 0;
+
+	req.cmds = cmd;
+	req.num_cmds = n;
+	req.wait_for_compl = 0;
+
+	return rpmh_rsc_init_fast_path(ctrlr_to_drv(ctrlr), &req);
+}
+EXPORT_SYMBOL(rpmh_init_fast_path);
+
+/**
+ * rpmh_update_fast_path: Initialize TCS request in fast-path TCS
+ *
+ * @dev:         The device making the request
+ * @cmd:         The data to be updated.
+ * @n:           The number of @cmd
+ * @update_mask: The elements in @cmd that only need to be updated
+ *
+ * Return:
+ * * 0          - Success
+ * * Error code - Otherwise
+ */
+int rpmh_update_fast_path(const struct device *dev,
+			  struct tcs_cmd *cmd, int n, u32 update_mask)
+{
+	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
+	struct tcs_request req;
+
+	if (rpmh_standalone)
+		return 0;
+
+	req.cmds = cmd;
+	req.num_cmds = n;
+	req.wait_for_compl = 0;
+
+	return rpmh_rsc_update_fast_path(ctrlr_to_drv(ctrlr), &req,
+					 update_mask);
+}
+EXPORT_SYMBOL(rpmh_update_fast_path);
+
 int rpmh_ctrlr_idle(const struct device *dev)
 {
 	struct rpmh_ctrlr *ctrlr = get_rpmh_ctrlr(dev);
@@ -642,4 +741,3 @@ int rpmh_ctrlr_idle(const struct device *dev)
 
 	return rpmh_rsc_ctrlr_is_idle(ctrlr_to_drv(ctrlr));
 }
-EXPORT_SYMBOL(rpmh_ctrlr_idle);
