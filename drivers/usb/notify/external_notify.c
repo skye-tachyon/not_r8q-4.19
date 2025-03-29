@@ -54,6 +54,10 @@ static const char *cmd_string(unsigned long cmd)
 		return "host_mode_device_added";
 	case EXTERNAL_NOTIFY_HOSTBLOCK_EARLY:
 		return "host_block_pre_fast";
+	case EXTERNAL_NOTIFY_VBUS_RESET:
+		return "vbus_reset";
+	case EXTERNAL_NOTIFY_POSSIBLE_USB:
+		return "possible_usb";
 	default:
 		return "undefined";
 	}

@@ -19,7 +19,7 @@
 #include <linux/notifier.h>
 #include <linux/version.h>
 #include <linux/usb_notify.h>
-#include "../core/hub.h"
+#include <linux/usb/hcd.h>
 
 #define SMARTDOCK_INDEX	1
 #define MMDOCK_INDEX	2
@@ -219,9 +219,106 @@ skip:
 	return 0;
 }
 
+static void seek_usb_interface(struct usb_device *dev)
+{
+	struct usb_interface *intf;
+	int i;
+
+	if (!dev) {
+		pr_err("%s no dev\n", __func__);
+		goto done;
+	}
+
+	if (!dev->actconfig) {
+		pr_info("%s no set config\n", __func__);
+		goto done;
+	}
+
+	for (i = 0; i < dev->actconfig->desc.bNumInterfaces; i++) {
+		intf = dev->actconfig->interface[i];
+		/* You can use this function for various purposes */
+		store_usblog_notify(NOTIFY_PORT_CLASS,
+			(void *)&dev->descriptor.bDeviceClass,
+			(void *)&intf->cur_altsetting->desc.bInterfaceClass);
+	}
+done:
+	return;
+}
+
+static void disconnect_usb_driver(struct usb_device *dev)
+{
+	struct usb_interface *intf = NULL;
+	struct usb_driver *driver = NULL;
+	int i;
+
+	if (!dev) {
+		pr_err("%s no dev\n", __func__);
+		goto done;
+	}
+
+	if (!dev->actconfig) {
+		pr_err("%s no set config\n", __func__);
+		goto done;
+	}
+
+	for (i = 0; i < dev->actconfig->desc.bNumInterfaces; i++) {
+		intf = dev->actconfig->interface[i];
+		if (intf->dev.driver) {
+			driver = to_usb_driver(intf->dev.driver);
+			usb_driver_release_interface(driver, intf);
+		}
+	}
+done:
+	return;
+}
+
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+static void connect_usb_driver(struct usb_device *dev)
+{
+	struct usb_interface *intf = NULL;
+	int i, ret = 0;
+
+	if (!dev) {
+		pr_err("%s no dev\n", __func__);
+		goto done;
+	}
+
+	if (!dev->actconfig) {
+		pr_err("%s no set config\n", __func__);
+		goto done;
+	}
+
+	for (i = 0; i < dev->actconfig->desc.bNumInterfaces; i++) {
+		intf = dev->actconfig->interface[i];
+		intf->authorized = 1;
+		if (!intf->dev.driver) {
+			ret = device_attach(&intf->dev);
+			if (ret < 0)
+				pr_err("%s attach intf->dev. error ret(%d)\n", __func__, ret);
+			else
+				pr_info("%s attach intf->dev\n", __func__);
+		}
+	}
+done:
+	return;
+}
+
+static void intf_authorized_clear(struct usb_device *dev)
+{
+	struct usb_hcd *hcd = bus_to_hcd(dev->bus);
+
+	pr_info("%s\n", __func__);
+	if (hcd)
+		clear_bit(HCD_FLAG_INTF_AUTHORIZED, &hcd->flags);
+}
+#endif
+
 static int call_device_notify(struct usb_device *dev, int connect)
 {
 	struct otg_notify *o_notify = get_otg_notify();
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+	int ret = 0;
+#endif
 
 	if (dev->bus->root_hub != dev) {
 		if (connect) {
@@ -240,16 +337,45 @@ static int call_device_notify(struct usb_device *dev, int connect)
 			store_usblog_notify(NOTIFY_PORT_CONNECT,
 				(void *)&dev->descriptor.idVendor,
 				(void *)&dev->descriptor.idProduct);
+
+			seek_usb_interface(dev);
+
+			if (!usb_check_whitelist_for_mdm(dev)) {
+				pr_info("This deice will be noattached state.\n");
+				disconnect_usb_driver(dev);
+				usb_set_device_state(dev, USB_STATE_NOTATTACHED);
+			}
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION			
+			ret = usb_check_allowlist_for_lockscreen_enabled_id(dev);
+			if (ret == USB_NOTIFY_NOLIST) {
+				pr_info("This device will be disabled.\n");
+				disconnect_usb_driver(dev);
+				usb_set_device_state(dev, USB_STATE_NOTATTACHED);
+				dev->authorized = 0;
+			} else if (ret == USB_NOTIFY_ALLOWLOST
+						|| ret == USB_NOTIFY_NORESTRICT) {
+				connect_usb_driver(dev);
+			}
+#endif			
 		} else {
 			send_otg_notify(o_notify,
 				NOTIFY_EVENT_DEVICE_CONNECT, 0);
 			store_usblog_notify(NOTIFY_PORT_DISCONNECT,
 				(void *)&dev->descriptor.idVendor,
 				(void *)&dev->descriptor.idProduct);
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION				
+			if (!dev->authorized)
+				disconnect_unauthorized_device(dev);
+#endif
 		}
 	} else {
-		if (connect)
+		if (connect) {
 			pr_info("%s root hub\n", __func__);
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+			if (check_usb_restrict_lock_state(o_notify))
+				intf_authorized_clear(dev);
+#endif
+		}
 	}
 
 	return 0;
@@ -286,8 +412,8 @@ static void check_device_speed(struct usb_device *dev, bool on)
 	struct usb_device *udev;
 	int port = 0;
 	int speed = USB_SPEED_UNKNOWN;
-	static int hs_hub = 0;
-	static int ss_hub = 0;
+	static int hs_hub;
+	static int ss_hub;
 
 	if (!o_notify) {
 		pr_err("%s otg_notify is null\n", __func__);
@@ -334,6 +460,69 @@ static void check_device_speed(struct usb_device *dev, bool on)
 
 	pr_info("%s : o_notify->speed %s\n", __func__,
 		usb_speed_string(o_notify->speed));
+}
+
+static void check_roothub_device(struct usb_device *dev, bool on)
+{
+	struct otg_notify *o_notify = get_otg_notify();
+	struct usb_device *hdev;
+	struct usb_device *udev;
+	int port = 0;
+	int speed = USB_SPEED_UNKNOWN;
+	static int hs_hub;
+	static int ss_hub;
+	int con_hub = 0;
+
+	if (!o_notify) {
+		pr_err("%s otg_notify is null\n", __func__);
+		return;
+	}
+
+	hdev = dev->parent;
+	if (!hdev)
+		return;
+
+	hdev = dev->bus->root_hub;
+	if (!hdev)
+		return;
+
+	usb_hub_for_each_child(hdev, port, udev) {
+		if (!on && (udev == dev))
+			continue;
+		if (is_usbhub(udev))
+			con_hub = 1;
+
+		if (udev->speed > speed)
+			speed = udev->speed;
+	}
+
+	if (hdev->speed >= USB_SPEED_SUPER) {
+		if (speed > USB_SPEED_UNKNOWN)
+			ss_hub = 1;
+		else
+			ss_hub = 0;
+	} else if (hdev->speed > USB_SPEED_UNKNOWN
+			&& hdev->speed != USB_SPEED_WIRELESS) {
+		if (speed > USB_SPEED_UNKNOWN)
+			hs_hub = 1;
+		else
+			hs_hub = 0;
+	} else
+		;
+
+	if (ss_hub || hs_hub) {
+		if (speed > o_notify->speed)
+			o_notify->speed = speed;
+	} else
+		o_notify->speed = USB_SPEED_UNKNOWN;
+
+	pr_info("%s : dev->speed %s %s\n", __func__,
+		usb_speed_string(dev->speed), on ? "on" : "off");
+
+	pr_info("%s : o_notify->speed %s\n", __func__,
+		usb_speed_string(o_notify->speed));
+
+	set_con_dev_hub(o_notify, speed, con_hub);
 }
 
 #if defined(CONFIG_USB_HW_PARAM)
@@ -440,6 +629,7 @@ static int dev_notify(struct notifier_block *self,
 		call_battery_notify(dev, 1);
 		check_device_speed(dev, 1);
 		update_hub_autosuspend_timer(dev);
+		check_roothub_device(dev, 1);
 #if defined(CONFIG_USB_HW_PARAM)
 		set_hw_param(dev);
 #endif
@@ -451,6 +641,7 @@ static int dev_notify(struct notifier_block *self,
 		call_device_notify(dev, 0);
 		call_battery_notify(dev, 0);
 		check_device_speed(dev, 0);
+		check_roothub_device(dev, 0);
 		break;
 	}
 	return NOTIFY_OK;
