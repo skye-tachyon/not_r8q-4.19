@@ -1200,7 +1200,15 @@ void max77705_set_enable_alternate_mode(int mode)
 		msg_maxim("mode is invalid!");
 		return;
 	}
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION					
+	if ((mode & ALTERNATE_MODE_STOP)) {
+		max77705_vdm_process_set_samsung_alternate_mode(usbpd_data,
+			MAXIM_ENABLE_ALTERNATE_SRCCAP);
+		msg_maxim("alternate mode is stopped! enable srccap ");
+	} else if (mode & ALTERNATE_MODE_RESET) {
+#else
 	if (mode & ALTERNATE_MODE_RESET) {
+#endif
 		msg_maxim("mode is reset! check_is_driver_loaded=%d, prev_alternate_mode=%d",
 			check_is_driver_loaded, prev_alternate_mode);
 		if (check_is_driver_loaded &&
@@ -1283,6 +1291,10 @@ void max77705_set_enable_alternate_mode(int mode)
 						status[7], status[8], status[9], status[10]);
 					usbpd_data->is_first_booting = 0;
 				} else if (mode & ALTERNATE_MODE_STOP) {
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+					max77705_vdm_process_set_samsung_alternate_mode(usbpd_data,
+						MAXIM_ENABLE_ALTERNATE_SRCCAP);
+#endif
 					msg_maxim("[ON BOOTING TIME] alternate mode is stopped!");
 				}
 				break;
