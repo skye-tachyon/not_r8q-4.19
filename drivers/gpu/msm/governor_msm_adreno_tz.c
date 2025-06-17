@@ -13,6 +13,8 @@
 #include <linux/io.h>
 #include <linux/ftrace.h>
 #include <linux/mm.h>
+#include <linux/msm_adreno_devfreq.h>
+#include <linux/state_notifier.h>
 #include <asm/cacheflush.h>
 #include <drm/drm_refresh_rate.h>
 #include <soc/qcom/scm.h>
@@ -67,6 +69,9 @@ static void do_partner_start_event(struct work_struct *work);
 static void do_partner_stop_event(struct work_struct *work);
 static void do_partner_suspend_event(struct work_struct *work);
 static void do_partner_resume_event(struct work_struct *work);
+
+/* Suspend state boolean */
+static bool suspended = false;
 
 static struct workqueue_struct *workqueue;
 
@@ -157,7 +162,6 @@ static ssize_t suspend_time_show(struct device *dev,
 }
 
 static DEVICE_ATTR_RO(gpu_load);
-
 #if 1
 static DEVICE_ATTR(adrenoboost, 0644,
 		adrenoboost_show, adrenoboost_save);
@@ -383,6 +387,9 @@ static int tz_init(struct devfreq_msm_adreno_tz_data *priv,
 	return ret;
 }
 
+extern int adreno_idler(struct devfreq_dev_status stats, struct devfreq *devfreq,
+		 unsigned long *freq);
+
 static inline int devfreq_get_freq_level(struct devfreq *devfreq,
 	unsigned long freq)
 {
@@ -395,12 +402,19 @@ static inline int devfreq_get_freq_level(struct devfreq *devfreq,
 	return -EINVAL;
 }
 
-//static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
-
 #ifdef CONFIG_SIMPLE_GPU_ALGORITHM
 extern int simple_gpu_active;
 extern int simple_gpu_algorithm(int level, int *val,
 				struct devfreq_msm_adreno_tz_data *priv);
+#endif
+
+#if 1
+/* Adreno idler stuff */
+// mapping gpu level calculated linear conservation half curve values into a
+// bell curve of conservation  (lower is higher freq level)
+static int conservation_map_up[] = {15,15,10,4,5,6,12     ,5,5,5};
+static int conservation_map_down[] = {0,1,6,6,5,0,0     ,5,5,5};
+
 #endif
 
 static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
@@ -411,10 +425,18 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 	int val, level = 0;
 	unsigned int scm_data[4];
 	int context_count = 0;
+<<<<<<< HEAD:drivers/gpu/msm/governor_msm_adreno_tz.c
 	
 	if (!priv)
 		return 0;
 		
+=======
+#if 1
+	int last_level = priv->bin.last_level;
+//	int max_state_val = devfreq->profile->max_state - 1;
+#endif
+
+>>>>>>> 54a47520640fa (Introduce Adreno idler for devfreq-based Adreno devices):drivers/devfreq/governor_msm_adreno_tz.c
 	/* keeps stats.private_data == NULL   */
 	result = devfreq_update_stats(devfreq);
 	if (result) {
@@ -433,8 +455,28 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 		priv->bin.busy_time += stats->busy_time;
 	}
 #else
-	priv->bin.busy_time += stats.busy_time;
+	priv->bin.busy_time += stats->busy_time;
 #endif
+
+	/* Prevent overflow */
+	if (stats->busy_time >= (1 << 24) || stats->total_time >= (1 << 24)) {
+		stats->busy_time >>= 7;
+		stats->total_time >>= 7;
+	}
+
+	/*
+	 * Force to use & record as min freq when system has
+	 * entered pm-suspend or screen-off state.
+	 */
+	if (suspended || state_suspended) {
+		*freq = devfreq->profile->freq_table[devfreq->profile->max_state - 1];
+		return 0;
+	}
+
+	if (adreno_idler(*stats, devfreq, freq)) {
+		/* adreno_idler has asked to bail out now */
+		return 0;
+	}
 
 	if (stats->private_data)
 		context_count =  *((int *)stats->private_data);
@@ -458,6 +500,11 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 	if (level < 0) {
 		pr_err(TAG "bad freq %ld\n", stats->current_frequency);
 		return level;
+	}
+	
+	// idle freq or any non governor drop should move last_level as well, so adrenoboost works on proper leveling
+	if (level != priv->bin.last_level) {
+		priv->bin.last_level = level;
 	}
 
 	/*
@@ -494,18 +541,53 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 					&val, sizeof(val), priv);
 #endif
 	}
+#if 0
 	priv->bin.total_time = 0;
 	priv->bin.busy_time = 0;
-
+#endif
 	/*
 	 * If the decision is to move to a different level, make sure the GPU
 	 * frequency changes.
 	 */
+#if 1
+	if (!adrenoboost && val) {
+		level += val;
+		level = max(level, 0);
+		level = min_t(int, level, devfreq->profile->max_state - 1);
+		printk("%s ADRENO jumping level = %d last_level = %d total=%d busy=%d original busy_time=%d \n", __func__, level, priv->bin.last_level, (int)priv->bin.total_time, (int)priv->bin.busy_time, (int)stats->busy_time);
+		priv->bin.last_level = level;
+	} else {
+		if (val) {
+			priv->bin.cycles_keeping_level += 1 + abs(val/2); // higher value change quantity means more addition to cycles_keeping_level for easier switching
+			// going upwards in frequency -- make it harder on the low and high freqs, middle ground - let it move
+			if (val<0 && priv->bin.cycles_keeping_level < conservation_map_up[ last_level ]) {
+				printk("%s ADRENO not jumping UP level = %d last_level = %d total=%d busy=%d original busy_time=%d \n", __func__, level, priv->bin.last_level, (int)priv->bin.total_time, (int)priv->bin.busy_time, (int)stats->busy_time);
+			} else
+			// going downwards in frequency let it happen hard in the middle freqs
+			if (val>0 && priv->bin.cycles_keeping_level < conservation_map_down[ last_level ])  {
+				printk("%s ADRENO not jumping DOWN level = %d last_level = %d total=%d busy=%d original busy_time=%d \n", __func__, level, priv->bin.last_level, (int)priv->bin.total_time, (int)priv->bin.busy_time, (int)stats->busy_time);
+			} else
+			{
+				level += val;
+				level = max(level, 0);
+				level = min_t(int, level, devfreq->profile->max_state - 1);
+				// reset keep cylcles timer
+				priv->bin.cycles_keeping_level = 0;
+				// set new last level
+				priv->bin.last_level = level;
+				printk("%s ADRENO jumping level = %d last_level = %d total=%d busy=%d original busy_time=%d \n", __func__, level, priv->bin.last_level, (int)priv->bin.total_time, (int)priv->bin.busy_time, (int)stats->busy_time);
+			}
+		}
+	}
+	priv->bin.total_time = 0;
+	priv->bin.busy_time = 0;
+#else
 	if (val) {
 		level += val;
 		level = max(level, 0);
 		level = min_t(int, level, devfreq->profile->max_state - 1);
 	}
+#endif
 
 	*freq = devfreq->profile->freq_table[level];
 	return 0;
@@ -594,6 +676,10 @@ static int tz_start(struct devfreq *devfreq)
 
 	for (i = 0; adreno_tz_attr_list[i] != NULL; i++)
 		device_create_file(&devfreq->dev, adreno_tz_attr_list[i]);
+		
+#if 1
+	priv->bin.last_level = devfreq->profile->max_state - 1;
+#endif
 
 	return kgsl_devfreq_add_notifier(devfreq->dev.parent, &priv->nb);
 }
@@ -625,6 +711,7 @@ static int tz_suspend(struct devfreq *devfreq)
 		return 0;
 		
 	__secure_tz_reset_entry2(scm_data, sizeof(scm_data), priv->is_64);
+	suspended = true;
 
 	priv->bin.total_time = 0;
 	priv->bin.busy_time = 0;
@@ -671,6 +758,7 @@ static int tz_handler(struct devfreq *devfreq, unsigned int event, void *data)
 
 	case DEVFREQ_GOV_RESUME:
 		atomic_long_add(suspend_time_ms(), &suspend_time);
+		suspended = false;
 		/* Reset the suspend_start when gpu resumes */
 		atomic_long_set(&suspend_start, 0);
 		/* fallthrough */
