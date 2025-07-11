@@ -646,7 +646,7 @@ static void __blk_mq_complete_request(struct request *rq)
 	} else {
 		q->mq_ops->complete(rq);
 	}
-	rq->q->softirq_done_fn(rq);
+	q->mq_ops->complete(rq);
 
 out:
 	put_cpu();
