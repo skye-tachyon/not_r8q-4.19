@@ -403,9 +403,6 @@ static void validate_mm(struct mm_struct *mm)
 #define validate_mm(mm) do { } while (0)
 #endif
 
-RB_DECLARE_CALLBACKS(static, vma_gap_callbacks, struct vm_area_struct, vm_rb,
-		     unsigned long, rb_subtree_gap, vma_compute_subtree_gap)
-
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 #define mm_rb_write_lock(mm)	write_lock(&(mm)->mm_rb_lock)
 #define mm_rb_write_unlock(mm)	write_unlock(&(mm)->mm_rb_lock)

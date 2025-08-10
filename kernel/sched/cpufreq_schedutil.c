@@ -16,6 +16,9 @@
 #include <linux/sched/cpufreq.h>
 #include <trace/events/power.h>
 #include <linux/sched/sysctl.h>
+#include <linux/binfmts.h>
+
+#define IOWAIT_BOOST_MIN	(SCHED_CAPACITY_SCALE / 8)
 
 struct sugov_tunables {
 	struct gov_attr_set	attr_set;
@@ -70,6 +73,7 @@ struct sugov_cpu {
 	unsigned int		iowait_boost;
 	u64			last_update;
 
+<<<<<<< HEAD
 	struct sched_walt_cpu_load walt_load;
 
 	unsigned long util;
@@ -88,6 +92,13 @@ struct sugov_cpu {
 static DEFINE_PER_CPU(struct sugov_cpu, sugov_cpu);
 static unsigned int stale_ns;
 static DEFINE_PER_CPU(struct sugov_tunables *, cached_tunables);
+=======
+	unsigned long		util;
+	unsigned long		bw_min;
+};
+
+static DEFINE_PER_CPU(struct sugov_cpu, sugov_cpu);
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 
 /************************ Governor internals ***********************/
 
@@ -168,6 +179,7 @@ static bool sugov_up_down_rate_limit(struct sugov_policy *sg_policy, u64 time,
 static bool sugov_update_next_freq(struct sugov_policy *sg_policy, u64 time,
 				   unsigned int next_freq)
 {
+<<<<<<< HEAD
 	if (sg_policy->next_freq == next_freq)
 		return false;
 
@@ -177,6 +189,39 @@ static bool sugov_update_next_freq(struct sugov_policy *sg_policy, u64 time,
 		return false;
 	}
 
+=======
+	if (sg_policy->need_freq_update) {
+		sg_policy->need_freq_update = false;
+		/*
+		 * The policy limits have changed, but if the return value of
+		 * cpufreq_driver_resolve_freq() after applying the new limits
+		 * is still equal to the previously selected frequency, the
+		 * driver callback need not be invoked unless the driver
+		 * specifically wants that to happen on every update of the
+		 * policy limits.
+		 */
+		if (cpufreq_driver_test_flags(CPUFREQ_NEED_UPDATE_LIMITS))
+			goto must_update;
+	}
+
+	/*
+	 * When a frequency update isn't mandatory (!need_freq_update), the rate
+	 * limit is checked again upon frequency reduction because systems with
+	 * frequency-invariant utilization bypass the rate limit check entirely
+	 * in sugov_should_update_freq(). This is done so that the rate limit
+	 * can be applied only for frequency reduction when frequency-invariant
+	 * utilization is present. Now that the next frequency is known, the
+	 * rate limit can be selectively applied to frequency reduction on such
+	 * systems. A check for arch_scale_freq_invariant() is omitted here
+	 * because unconditionally rechecking the rate limit is cheaper.
+	 */
+	if (next_freq == sg_policy->next_freq ||
+	    (next_freq < sg_policy->next_freq &&
+	     sugov_should_rate_limit(sg_policy, time)))
+		return false;
+
+must_update:
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 	sg_policy->next_freq = next_freq;
 	sg_policy->last_freq_update_time = time;
 
@@ -267,8 +312,12 @@ static void sugov_deferred_update(struct sugov_policy *sg_policy, u64 time,
 	if (!sugov_update_next_freq(sg_policy, time, next_freq))
 		return;
 
+<<<<<<< HEAD
 	if (use_pelt())
 		sg_policy->work_in_progress = true;
+=======
+	sg_policy->work_in_progress = true;
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 	irq_work_queue(&sg_policy->irq_work);
 }
 
@@ -299,11 +348,27 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 				  unsigned long util, unsigned long max)
 {
 	struct cpufreq_policy *policy = sg_policy->policy;
+<<<<<<< HEAD
 	unsigned int freq = arch_scale_freq_invariant() ?
 				policy->cpuinfo.max_freq : policy->cur;
 
 	freq = map_util_freq(util, freq, max);
 	trace_sugov_next_freq(policy->cpu, util, max, freq);
+=======
+	unsigned int freq;
+	unsigned int idx, l_freq, h_freq;
+
+	if (arch_scale_freq_invariant())
+		freq = policy->cpuinfo.max_freq;
+	else
+		/*
+		 * Apply a 25% margin so that we select a higher frequency than
+		 * the current one before the CPU is fully busy:
+		 */
+		freq = policy->cur + (policy->cur >> 2);
+
+	freq = map_util_freq(util, freq, max);
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 
 	if (freq == sg_policy->cached_raw_freq && !sg_policy->need_freq_update)
 		return sg_policy->next_freq;
@@ -311,11 +376,26 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	sg_policy->need_freq_update = false;
 	sg_policy->prev_cached_raw_freq = sg_policy->cached_raw_freq;
 	sg_policy->cached_raw_freq = freq;
+<<<<<<< HEAD
 	return cpufreq_driver_resolve_freq(policy, freq);
-}
+=======
+	l_freq = cpufreq_driver_resolve_freq(policy, freq);
+	idx = cpufreq_frequency_table_target(policy, freq, CPUFREQ_RELATION_H);
+	h_freq = policy->freq_table[idx].frequency;
+	h_freq = clamp(h_freq, policy->min, policy->max);
+	if (l_freq <= h_freq || l_freq == policy->min)
+		return l_freq;
 
-extern long
-schedtune_cpu_margin_with(unsigned long util, int cpu, struct task_struct *p);
+	/*
+	 * Use the frequency step below if the calculated frequency is <20%
+	 * higher than it.
+	 */
+	if (mult_frac(100, freq - h_freq, l_freq - h_freq) < 20)
+		return h_freq;
+
+	return l_freq;
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
+}
 
 /*
  * This function computes an effective utilization for the given CPU, to be
@@ -341,16 +421,13 @@ schedtune_cpu_margin_with(unsigned long util, int cpu, struct task_struct *p);
  * required to meet deadlines.
  */
 unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
-				 unsigned long max, enum schedutil_type type,
-				 struct task_struct *p)
+				 unsigned long *min,
+				 unsigned long *max)
 {
-	unsigned long dl_util, util, irq;
+	unsigned long util, irq, scale;
 	struct rq *rq = cpu_rq(cpu);
 
-	if (!uclamp_is_used() &&
-	    type == FREQUENCY_UTIL && rt_rq_is_runnable(&rq->rt)) {
-		return max;
-	}
+	scale = arch_scale_cpu_capacity(cpu);
 
 	/*
 	 * Early check to see if IRQ/steal time saturates the CPU, can be
@@ -358,22 +435,39 @@ unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 	 * update_irq_load_avg().
 	 */
 	irq = cpu_util_irq(rq);
-	if (unlikely(irq >= max))
-		return max;
+	if (unlikely(irq >= scale)) {
+		if (min)
+			*min = scale;
+		if (max)
+			*max = scale;
+		return scale;
+	}
+
+	if (min) {
+		/*
+		 * The minimum utilization returns the highest level between:
+		 * - the computed DL bandwidth needed with the IRQ pressure which
+		 *   steals time to the deadline task.
+		 * - The minimum performance requirement for CFS and/or RT.
+		 */
+		*min = max(irq + cpu_bw_dl(rq), uclamp_rq_get(rq, UCLAMP_MIN));
+
+		/*
+		 * When an RT task is runnable and uclamp is not used, we must
+		 * ensure that the task will run at maximum compute capacity.
+		 */
+		if (!uclamp_is_used() && rt_rq_is_runnable(&rq->rt))
+			*min = max(*min, scale);
+	}
 
 	/*
 	 * Because the time spend on RT/DL tasks is visible as 'lost' time to
 	 * CFS tasks and we use the same metric to track the effective
 	 * utilization (PELT windows are synchronized) we can directly add them
 	 * to obtain the CPU's actual utilization.
-	 *
-	 * CFS and RT utilization can be boosted or capped, depending on
-	 * utilization clamp constraints requested by currently RUNNABLE
-	 * tasks.
-	 * When there are no CFS RUNNABLE tasks, clamps are released and
-	 * frequency will be gracefully reduced with the utilization decay.
 	 */
 	util = util_cfs + cpu_util_rt(rq);
+<<<<<<< HEAD
 	if (type == FREQUENCY_UTIL)
 #ifdef CONFIG_SCHED_TUNE
 		util += schedtune_cpu_margin_with(util, cpu, p);
@@ -382,25 +476,19 @@ unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 #endif
 
 	dl_util = cpu_util_dl(rq);
+=======
+	util += cpu_util_dl(rq);
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 
 	/*
-	 * For frequency selection we do not make cpu_util_dl() a permanent part
-	 * of this sum because we want to use cpu_bw_dl() later on, but we need
-	 * to check if the CFS+RT+DL sum is saturated (ie. no idle time) such
-	 * that we select f_max when there is no idle time.
-	 *
-	 * NOTE: numerical errors or stop class might cause us to not quite hit
-	 * saturation when we should -- something for later.
+	 * The maximum hint is a soft bandwidth requirement, which can be lower
+	 * than the actual utilization because of uclamp_max requirements.
 	 */
-	if (util + dl_util >= max)
-		return max;
+	if (max)
+		*max = min(scale, uclamp_rq_get(rq, UCLAMP_MAX));
 
-	/*
-	 * OTOH, for energy computation we need the estimated running time, so
-	 * include util_dl and ignore dl_bw.
-	 */
-	if (type == ENERGY_UTIL)
-		util += dl_util;
+	if (util >= scale)
+		return scale;
 
 	/*
 	 * There is still idle time; further improve the number by using the
@@ -411,51 +499,77 @@ unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 	 *   U' = irq + ------- * U
 	 *                max
 	 */
+<<<<<<< HEAD
 	util = scale_irq_capacity(util, irq, max);
 	util += irq;
+=======
+	util = scale_irq_capacity(util, irq, scale);
+	util += irq;
+
+	return min(scale, util);
+}
+
+static inline unsigned long apply_dvfs_headroom(unsigned long util, int cpu)
+{
+    	unsigned long capacity = capacity_orig_of(cpu);
+    	unsigned long delta, headroom, min_util;
+
+    	if (util >= capacity)
+        	return util;
+        /*
+         * Quadratic taper the boosting at the top end as these are expensive
+         * and we don't need that much of a big headroom as we approach max
+         * capacity
+         */
+	delta = capacity - util;
+	headroom = (delta * delta) / (4 * capacity);
+
+	/* 10% of capacity threshold */
+    	min_util = capacity / 10;
+
+    	/* Suppress boosting below the threshold */
+    	if (util < min_util) {
+        	headroom = (headroom * util * util) / (min_util * min_util);
+    	}
+
+    	return util + headroom;
+}
+
+unsigned long sugov_effective_cpu_perf(int cpu, unsigned long actual,
+				 unsigned long min,
+				 unsigned long max)
+{
+	/* Add dvfs headroom to actual utilization */
+	actual = apply_dvfs_headroom(actual, cpu);
+	/* Actually we don't need to target the max performance */
+	if (actual < max)
+		max = actual;
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 
 	/*
-	 * Bandwidth required by DEADLINE must always be granted while, for
-	 * FAIR and RT, we use blocked utilization of IDLE CPUs as a mechanism
-	 * to gracefully reduce the frequency when no tasks show up for longer
-	 * periods of time.
-	 *
-	 * Ideally we would like to set bw_dl as min/guaranteed freq and util +
-	 * bw_dl as requested freq. However, cpufreq is not yet ready for such
-	 * an interface. So, we only do the latter for now.
+	 * Ensure at least minimum performance while providing more compute
+	 * capacity when possible.
 	 */
+<<<<<<< HEAD
 	if (type == FREQUENCY_UTIL)
 		util += cpu_bw_dl(rq);
 
 	return min(max, util);
+=======
+	return max(min, max);
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 }
 
-#ifdef CONFIG_SCHED_WALT
-static unsigned long sugov_get_util(struct sugov_cpu *sg_cpu)
+static void sugov_get_util(struct sugov_cpu *sg_cpu, unsigned long boost)
 {
 	struct rq *rq = cpu_rq(sg_cpu->cpu);
-	unsigned long max = arch_scale_cpu_capacity(sg_cpu->cpu);
+	unsigned long min, max, util = cpu_util_cfs(rq);
 
-	sg_cpu->max = max;
-	sg_cpu->bw_dl = cpu_bw_dl(rq);
-
-	return stune_util(sg_cpu->cpu, 0, &sg_cpu->walt_load);
+	util = schedutil_cpu_util(sg_cpu->cpu, util, &min, &max);
+	util = max(util, boost);
+	sg_cpu->bw_min = min;
+	sg_cpu->util = sugov_effective_cpu_perf(sg_cpu->cpu, util, min, max);
 }
-#else
-static unsigned long sugov_get_util(struct sugov_cpu *sg_cpu)
-{
-	struct rq *rq = cpu_rq(sg_cpu->cpu);
-
-	unsigned long util_cfs = cpu_util_cfs(rq);
-	unsigned long max = arch_scale_cpu_capacity(sg_cpu->cpu);
-
-	sg_cpu->max = max;
-	sg_cpu->bw_dl = cpu_bw_dl(rq);
-
-	return schedutil_cpu_util(sg_cpu->cpu, util_cfs, max,
-				  FREQUENCY_UTIL, NULL);
-}
-#endif
 
 <<<<<<< HEAD
 =======
@@ -463,7 +577,7 @@ unsigned long sched_cpu_util(int cpu)
 {
 	unsigned long max = arch_scale_cpu_capacity(cpu);
 
-	return schedutil_cpu_util(cpu, cpu_util_cfs(cpu_rq(cpu)), max, ENERGY_UTIL, NULL);
+	return schedutil_cpu_util(cpu, cpu_util_cfs(cpu_rq(cpu)), NULL, &max);
 }
 
 >>>>>>> 8d805b559ac1c (treewide: Fix topology_get_cpu_scale & arch_scale_cpu_capacity usage)
@@ -475,8 +589,8 @@ unsigned long sched_cpu_util(int cpu)
  *
  * The IO wait boost of a task is disabled after a tick since the last update
  * of a CPU. If a new IO wait boost is requested after more then a tick, then
- * we enable the boost starting from the minimum frequency, which improves
- * energy efficiency by ignoring sporadic wakeups from IO.
+ * we enable the boost starting from IOWAIT_BOOST_MIN, which improves energy
+ * efficiency by ignoring sporadic wakeups from IO.
  */
 static bool sugov_iowait_reset(struct sugov_cpu *sg_cpu, u64 time,
 			       bool set_iowait_boost)
@@ -487,7 +601,7 @@ static bool sugov_iowait_reset(struct sugov_cpu *sg_cpu, u64 time,
 	if (delta_ns <= TICK_NSEC)
 		return false;
 
-	sg_cpu->iowait_boost = set_iowait_boost ? sg_cpu->min : 0;
+	sg_cpu->iowait_boost = set_iowait_boost ? IOWAIT_BOOST_MIN : 0;
 	sg_cpu->iowait_boost_pending = set_iowait_boost;
 
 	return true;
@@ -501,8 +615,9 @@ static bool sugov_iowait_reset(struct sugov_cpu *sg_cpu, u64 time,
  *
  * Each time a task wakes up after an IO operation, the CPU utilization can be
  * boosted to a certain utilization which doubles at each "frequent and
- * successive" wakeup from IO, ranging from the utilization of the minimum
- * OPP to the utilization of the maximum OPP.
+ * successive" wakeup from IO, ranging from IOWAIT_BOOST_MIN to the utilization
+ * of the maximum OPP.
+ *
  * To keep doubling, an IO boost has to be requested at least once per tick,
  * otherwise we restart from the utilization of the minimum OPP.
  */
@@ -533,15 +648,14 @@ static void sugov_iowait_boost(struct sugov_cpu *sg_cpu, u64 time,
 	}
 
 	/* First wakeup after IO: start with minimum boost */
-	sg_cpu->iowait_boost = sg_cpu->min;
+	sg_cpu->iowait_boost = IOWAIT_BOOST_MIN;
 }
 
 /**
  * sugov_iowait_apply() - Apply the IO boost to a CPU.
  * @sg_cpu: the sugov data for the cpu to boost
  * @time: the update time from the caller
- * @util: the utilization to (eventually) boost
- * @max: the maximum value the utilization can be boosted to
+ * @max_cap: the max CPU capacity
  *
  * A CPU running a task which woken up after an IO operation can have its
  * utilization boosted to speed up the completion of those IO operations.
@@ -556,35 +670,34 @@ static void sugov_iowait_boost(struct sugov_cpu *sg_cpu, u64 time,
  * being more conservative on tasks which does sporadic IO operations.
  */
 static unsigned long sugov_iowait_apply(struct sugov_cpu *sg_cpu, u64 time,
-					unsigned long util, unsigned long max)
+			       unsigned long max_cap)
 {
-	unsigned long boost;
-
 	/* No boost currently required */
 	if (!sg_cpu->iowait_boost)
-		return util;
+		return 0;
 
 	/* Reset boost if the CPU appears to have been idle enough */
 	if (sugov_iowait_reset(sg_cpu, time, false))
-		return util;
+		return 0;
 
 	if (!sg_cpu->iowait_boost_pending) {
 		/*
 		 * No boost pending; reduce the boost value.
 		 */
 		sg_cpu->iowait_boost >>= 1;
-		if (sg_cpu->iowait_boost < sg_cpu->min) {
+		if (sg_cpu->iowait_boost < IOWAIT_BOOST_MIN) {
 			sg_cpu->iowait_boost = 0;
-			return util;
+			return 0;
 		}
 	}
 
 	sg_cpu->iowait_boost_pending = false;
 
 	/*
-	 * @util is already in capacity scale; convert iowait_boost
+	 * sg_cpu->util is already in capacity scale; convert iowait_boost
 	 * into the same scale so we can compare.
 	 */
+<<<<<<< HEAD
 	boost = (sg_cpu->iowait_boost * max) >> SCHED_CAPACITY_SHIFT;
 	return max(boost, util);
 }
@@ -639,6 +752,9 @@ static void sugov_walt_adjust(struct sugov_cpu *sg_cpu, unsigned long *util,
 			pl = mult_frac(pl, TARGET_LOAD, 100);
 		*util = max(*util, pl);
 	}
+=======
+	return (sg_cpu->iowait_boost * max_cap) >> SCHED_CAPACITY_SHIFT;
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 }
 
 /*
@@ -647,7 +763,7 @@ static void sugov_walt_adjust(struct sugov_cpu *sg_cpu, unsigned long *util,
  */
 static inline void ignore_dl_rate_limit(struct sugov_cpu *sg_cpu, struct sugov_policy *sg_policy)
 {
-	if (cpu_bw_dl(cpu_rq(sg_cpu->cpu)) > sg_cpu->bw_dl)
+	if (cpu_bw_dl(cpu_rq(sg_cpu->cpu)) > sg_cpu->bw_min)
 		sg_policy->limits_changed = true;
 }
 
@@ -666,12 +782,20 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 {
 	struct sugov_cpu *sg_cpu = container_of(hook, struct sugov_cpu, update_util);
 	struct sugov_policy *sg_policy = sg_cpu->sg_policy;
+<<<<<<< HEAD
 	unsigned long util, max, hs_util, boost_util;
+=======
+	unsigned long max_cap, boost;
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 	unsigned int next_f;
 	bool busy;
 
+<<<<<<< HEAD
 	if (!sg_policy->tunables->pl && flags & SCHED_CPUFREQ_PL)
 		return;
+=======
+	max_cap = arch_scale_cpu_capacity(sg_cpu->cpu);
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 
 	sugov_iowait_boost(sg_cpu, time, flags);
 	sg_cpu->last_update = time;
@@ -681,6 +805,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	if (!sugov_should_update_freq(sg_policy, time))
 		return;
 
+<<<<<<< HEAD
 	/* Limits may have changed, don't skip frequency update */
 	busy = use_pelt() && !sg_policy->need_freq_update &&
 		sugov_cpu_is_busy(sg_cpu);
@@ -721,6 +846,12 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 		/* Restore cached freq as next_freq has changed */
 		sg_policy->cached_raw_freq = sg_policy->prev_cached_raw_freq;
 	}
+=======
+	boost = sugov_iowait_apply(sg_cpu, time, max_cap);
+	sugov_get_util(sg_cpu, boost);
+
+	next_f = get_next_freq(sg_policy, sg_cpu->util, max_cap);
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 
 	/*
 	 * This code runs under rq->lock for the target CPU, so it won't run
@@ -740,15 +871,21 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 {
 	struct sugov_policy *sg_policy = sg_cpu->sg_policy;
 	struct cpufreq_policy *policy = sg_policy->policy;
+<<<<<<< HEAD
 	u64 last_freq_update_time = sg_policy->last_freq_update_time;
 	unsigned long util = 0, max = 1;
+=======
+	unsigned long util = 0, max_cap;
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 	unsigned int j;
+
+	max_cap = arch_scale_cpu_capacity(sg_cpu->cpu);
 
 	for_each_cpu(j, policy->cpus) {
 		struct sugov_cpu *j_sg_cpu = &per_cpu(sugov_cpu, j);
-		unsigned long j_util, j_max;
-		s64 delta_ns;
+		unsigned long boost;
 
+<<<<<<< HEAD
 		/*
 		 * If the CPU utilization was last updated before the previous
 		 * frequency update and the time elapsed between the last update
@@ -780,9 +917,15 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 		}
 
 		sugov_walt_adjust(j_sg_cpu, &util, &max);
+=======
+		boost = sugov_iowait_apply(j_sg_cpu, time, max_cap);
+		sugov_get_util(j_sg_cpu, boost);
+
+		util = max(j_sg_cpu->util, util);
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 	}
 
-	return get_next_freq(sg_policy, util, max);
+	return get_next_freq(sg_policy, util, max_cap);
 }
 
 static void
@@ -793,11 +936,14 @@ sugov_update_shared(struct update_util_data *hook, u64 time, unsigned int flags)
 	unsigned long hs_util, boost_util;
 	unsigned int next_f;
 
+<<<<<<< HEAD
 	if (!sg_policy->tunables->pl && flags & SCHED_CPUFREQ_PL)
 		return;
 
 	sg_cpu->util = sugov_get_util(sg_cpu);
 	sg_cpu->flags = flags;
+=======
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 	raw_spin_lock(&sg_policy->update_lock);
 
 	if (sg_policy->max != sg_cpu->max) {
@@ -854,10 +1000,14 @@ static void sugov_work(struct kthread_work *work)
 	 */
 	raw_spin_lock_irqsave(&sg_policy->update_lock, flags);
 	freq = sg_policy->next_freq;
+<<<<<<< HEAD
 	if (use_pelt())
 		sg_policy->work_in_progress = false;
 	sugov_track_cycles(sg_policy, sg_policy->policy->cur,
 			   ktime_get_ns());
+=======
+	sg_policy->work_in_progress = false;
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 	raw_spin_unlock_irqrestore(&sg_policy->update_lock, flags);
 
 	mutex_lock(&sg_policy->work_lock);
@@ -914,6 +1064,9 @@ static ssize_t up_rate_limit_us_store(struct gov_attr_set *attr_set,
 	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
 	struct sugov_policy *sg_policy;
 	unsigned int rate_limit_us;
+
+	if (task_is_booster(current))
+		return count;
 
 	if (kstrtouint(buf, 10, &rate_limit_us))
 		return -EINVAL;
@@ -1255,6 +1408,7 @@ static int sugov_init(struct cpufreq_policy *policy)
 		goto stop_kthread;
 	}
 
+<<<<<<< HEAD
 	tunables->up_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
 	tunables->down_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
 	tunables->hispeed_load = DEFAULT_HISPEED_LOAD;
@@ -1272,10 +1426,14 @@ static int sugov_init(struct cpufreq_policy *policy)
 		tunables->rtg_boost_freq = DEFAULT_CPU7_RTG_BOOST_FREQ;
 		break;
 	}
+=======
+	tunables->rate_limit_us = 2000;
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 
 	policy->governor_data = sg_policy;
 	sg_policy->tunables = tunables;
 
+<<<<<<< HEAD
 	util = target_util(sg_policy, sg_policy->tunables->rtg_boost_freq);
 	sg_policy->rtg_boost_util = util;
 
@@ -1283,6 +1441,8 @@ static int sugov_init(struct cpufreq_policy *policy)
 
 	sugov_tunables_restore(policy);
 
+=======
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 	ret = kobject_init_and_add(&tunables->attr_set.kobj, &sugov_tunables_ktype,
 				   get_governor_parent_kobj(policy), "%s",
 				   schedutil_gov.name);
@@ -1358,9 +1518,6 @@ static int sugov_start(struct cpufreq_policy *policy)
 		memset(sg_cpu, 0, sizeof(*sg_cpu));
 		sg_cpu->cpu			= cpu;
 		sg_cpu->sg_policy		= sg_policy;
-		sg_cpu->min			=
-			(SCHED_CAPACITY_SCALE * policy->cpuinfo.min_freq) /
-			policy->cpuinfo.max_freq;
 	}
 
 	for_each_cpu(cpu, policy->cpus) {
@@ -1398,10 +1555,13 @@ static void sugov_limits(struct cpufreq_policy *policy)
 
 	if (!policy->fast_switch_enabled) {
 		mutex_lock(&sg_policy->work_lock);
+<<<<<<< HEAD
 		raw_spin_lock_irqsave(&sg_policy->update_lock, flags);
 		sugov_track_cycles(sg_policy, sg_policy->policy->cur,
 				   ktime_get_ns());
 		raw_spin_unlock_irqrestore(&sg_policy->update_lock, flags);
+=======
+>>>>>>> e4b0374ed30a9 (sched/cpufreq: Rework schedutil governor performance estimation)
 		cpufreq_policy_apply_limits(policy);
 		mutex_unlock(&sg_policy->work_lock);
 	} else {
