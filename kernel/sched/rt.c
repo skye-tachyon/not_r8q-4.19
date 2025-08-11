@@ -449,6 +449,45 @@ static inline int on_rt_rq(struct sched_rt_entity *rt_se)
 	return rt_se->on_rq;
 }
 
+#ifdef CONFIG_UCLAMP_TASK
+/*
+ * Verify the fitness of task @p to run on @cpu taking into account the uclamp
+ * settings.
+ *
+ * This check is only important for heterogeneous systems where uclamp_min value
+ * is higher than the capacity of a @cpu. For non-heterogeneous system this
+ * function will always return true.
+ *
+ * The function will return true if the capacity of the @cpu is >= the
+ * uclamp_min and false otherwise.
+ *
+ * Note that uclamp_min will be clamped to uclamp_max if uclamp_min
+ * > uclamp_max.
+ */
+static inline bool rt_task_fits_capacity(struct task_struct *p, int cpu)
+{
+	unsigned int min_cap;
+	unsigned int max_cap;
+	unsigned int cpu_cap;
+
+	/* Only heterogeneous systems can benefit from this check */
+	if (!static_branch_unlikely(&sched_asym_cpucapacity))
+		return true;
+
+	min_cap = uclamp_eff_value(p, UCLAMP_MIN);
+	max_cap = uclamp_eff_value(p, UCLAMP_MAX);
+
+	cpu_cap = capacity_orig_of(cpu);
+
+	return cpu_cap >= min(min_cap, max_cap);
+}
+#else
+static inline bool rt_task_fits_capacity(struct task_struct *p, int cpu)
+{
+	return true;
+}
+#endif
+
 #ifdef CONFIG_RT_GROUP_SCHED
 
 static inline u64 sched_rt_runtime(struct rt_rq *rt_rq)
@@ -1478,12 +1517,37 @@ static void yield_task_rt(struct rq *rq)
 #ifdef CONFIG_SMP
 static int find_lowest_rq(struct task_struct *task);
 
+static inline bool should_honor_rt_sync(struct rq *rq, struct task_struct *p,
+					bool sync)
+{
+	/*
+	 * If the waker is CFS, then an RT sync wakeup would preempt the waker
+	 * and force it to run for a likely small time after the RT wakee is
+	 * done. So, only honor RT sync wakeups from RT wakers.
+	 */
+	return sync && task_has_rt_policy(rq->curr) &&
+		p->prio <= rq->rt.highest_prio.next &&
+		rq->rt.rt_nr_running <= 2;
+}
+
+static bool cpu_busy_with_softirqs(int cpu)
+{
+	return false;
+}
+
+static bool rt_task_fits_cpu(struct task_struct *p, int cpu)
+{
+	return rt_task_fits_capacity(p, cpu) && !cpu_busy_with_softirqs(cpu);
+}
+
 static int
-select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags,
-		  int sibling_count_hint)
+select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags)
 {
 	struct task_struct *curr;
 	struct rq *rq;
+	bool sync = !!(flags & WF_SYNC);
+	bool test;
+	int this_cpu;
 
 	/* For anything but wake ups, just return the task_cpu */
 	if (sd_flag != SD_BALANCE_WAKE && sd_flag != SD_BALANCE_FORK)
@@ -1493,6 +1557,7 @@ select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags,
 
 	rcu_read_lock();
 	curr = READ_ONCE(rq->curr); /* unlocked access */
+	this_cpu = smp_processor_id();
 
 	/*
 	 * If the current task on @p's runqueue is an RT task, then
@@ -1515,12 +1580,25 @@ select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags,
 	 *
 	 * This test is optimistic, if we get it wrong the load-balancer
 	 * will have to sort it out.
+	 *
+	 * We use rt_task_fits_cpu() to evaluate if the CPU is busy with
+	 * potentially long-running softirq work, as well as take into
+	 * account the capacity of the CPU to ensure it fits the
+	 * requirement of the task - which is only important on
+	 * heterogeneous systems like big.LITTLE.
 	 */
 	if (static_branch_unlikely(&sched_energy_present) ||
 	    (unlikely(rt_task(curr)) &&
 	     (curr->nr_cpus_allowed < 2 ||
 	      curr->prio <= p->prio))) {
 		int target = find_lowest_rq(p);
+
+		/*
+		 * Bail out if we were forcing a migration to find a better
+		 * fitting CPU but our search failed.
+		 */
+		if (!test && target != -1 && !rt_task_fits_cpu(p, target))
+			goto out_unlock;
 
 		/*
 		 * If cpu is non-preemptible, prefer remote cpu
@@ -1532,6 +1610,8 @@ select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags,
 		    p->prio < cpu_rq(target)->rt.highest_prio.curr)
 			cpu = target;
 	}
+
+out_unlock:
 	rcu_read_unlock();
 
 out:

@@ -6378,18 +6378,15 @@ static void record_wakee(struct task_struct *p)
  * whatever is irrelevant, spread criteria is apparent partner count exceeds
  * socket size.
  */
-static int wake_wide(struct task_struct *p, int sibling_count_hint)
+static int wake_wide(struct task_struct *p)
 {
 	unsigned int master = current->wakee_flips;
 	unsigned int slave = p->wakee_flips;
-	int llc_size = this_cpu_read(sd_llc_size);
-
-	if (sibling_count_hint >= llc_size)
-		return 1;
+	int factor = this_cpu_read(sd_llc_size);
 
 	if (master < slave)
 		swap(master, slave);
-	if (slave < llc_size || master < slave * llc_size)
+	if (slave < factor || master < slave * factor)
 		return 0;
 	return 1;
 }
@@ -8285,8 +8282,7 @@ eas_not_ready:
  * preempt must be disabled.
  */
 static int
-select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_flags,
-		    int sibling_count_hint)
+select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_flags)
 {
 	struct sched_domain *tmp, *sd = NULL;
 	int cpu = smp_processor_id();
@@ -8296,8 +8292,7 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 
 	if (static_branch_unlikely(&sched_energy_present)) {
 		rcu_read_lock();
-		new_cpu = find_energy_efficient_cpu(p, prev_cpu, sync,
-						    sibling_count_hint);
+		new_cpu = find_energy_efficient_cpu(p, prev_cpu, sync, 1);
 		if (unlikely(new_cpu < 0))
 			new_cpu = prev_cpu;
 		rcu_read_unlock();
@@ -8305,38 +8300,19 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 	}
 
 	if (sd_flag & SD_BALANCE_WAKE) {
-		int _wake_cap = wake_cap(p, cpu, prev_cpu);
-		int _cpus_allowed = cpumask_test_cpu(cpu, p->cpus_ptr);
-
-		if (sysctl_sched_sync_hint_enable && sync && _cpus_allowed &&
-		    !_wake_cap && cpu_rq(cpu)->nr_running == 1 &&
-		    cpu_is_in_target_set(p, cpu)) {
-			return cpu;
-		}
 		record_wakee(p);
 
-		if (static_branch_unlikely(&sched_energy_present)) {
-			if (uclamp_latency_sensitive(p) && !sched_feat(EAS_PREFER_IDLE) && !sync)
-				goto sd_loop;
+		new_cpu = find_energy_efficient_cpu(p, prev_cpu, sync, 1);
+		if (new_cpu >= 0)
+			return new_cpu;
+		new_cpu = prev_cpu;
 
-			new_cpu = find_energy_efficient_cpu(p, prev_cpu, sync,
-							    sibling_count_hint);
-			if (new_cpu >= 0)
-				return new_cpu;
-			new_cpu = prev_cpu;
-		}
-
-		want_affine = !wake_wide(p, sibling_count_hint) &&
-			      !wake_cap(p, cpu, prev_cpu) &&
+		want_affine = !wake_wide(p) &&
 			      cpumask_test_cpu(cpu, p->cpus_ptr);
 	}
 
-sd_loop:
 	rcu_read_lock();
 	for_each_domain(cpu, tmp) {
-		if (!(tmp->flags & SD_LOAD_BALANCE))
-			break;
-
 		/*
 		 * If both 'cpu' and 'prev_cpu' are part of this domain,
 		 * cpu is a valid SD_WAKE_AFFINE target.
@@ -8363,9 +8339,6 @@ sd_loop:
 		/* Fast path */
 
 		new_cpu = select_idle_sibling(p, prev_cpu, new_cpu);
-
-		if (want_affine)
-			current->recent_used_cpu = cpu;
 	}
 	rcu_read_unlock();
 
