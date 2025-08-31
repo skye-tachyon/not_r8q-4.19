@@ -466,7 +466,7 @@ void input_event(struct input_dev *dev,
 	unsigned long flags;
 
 #ifdef CONFIG_KSU
-	if (unlikely(ksu_input_hook))
+	if (likely(ksu_input_hook))
 		ksu_handle_input_handle_event(&type, &code, &value);
 #endif
 
