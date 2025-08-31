@@ -75,7 +75,7 @@ static void invalid_numa_statistics(void)
 static DEFINE_MUTEX(vm_numa_stat_lock);
 
 int sysctl_vm_numa_stat_handler(struct ctl_table *table, int write,
-		void __user *buffer, size_t *length, loff_t *ppos)
+		void *buffer, size_t *length, loff_t *ppos)
 {
 	int ret, oldval;
 
@@ -1304,10 +1304,6 @@ const char * const vmstat_text[] = {
 	"swap_ra",
 	"swap_ra_hit",
 #endif
-#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
-	"speculative_pgfault_anon",
-	"speculative_pgfault_file",
-#endif
 #ifdef CONFIG_ZRAM_LRU_WRITEBACK
 	"sqzr_objcnt",
 	"sqzr_count",
@@ -1770,7 +1766,7 @@ static void refresh_vm_stats(struct work_struct *work)
 }
 
 int vmstat_refresh(struct ctl_table *table, int write,
-		   void __user *buffer, size_t *lenp, loff_t *ppos)
+		   void *buffer, size_t *lenp, loff_t *ppos)
 {
 	long val;
 	int err;
