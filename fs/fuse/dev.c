@@ -451,7 +451,6 @@ static void request_wait_answer(struct fuse_conn *fc, struct fuse_req *req)
 {
 	struct fuse_iqueue *fiq = &fc->iq;
 	int err;
-	long ret;
 
 	if (!fc->no_interrupt) {
 		/* Any signal may interrupt this */
@@ -486,35 +485,13 @@ static void request_wait_answer(struct fuse_conn *fc, struct fuse_req *req)
 		spin_unlock(&fiq->lock);
 	}
 
-	pr_info("fuse_dbg: request_wait_answer: entering wait-loop req=%p flags=0x%lx pend=%d sent=%d fin=%d force=%d pid=%d preempt_count=%u in_atomic=%d freezing=%d\n",
-		req, (unsigned long)req->flags,
-		test_bit(FR_PENDING, &req->flags),
-		test_bit(FR_SENT, &req->flags),
-		test_bit(FR_FINISHED, &req->flags),
-		test_bit(FR_FORCE, &req->flags),
-		current->pid, preempt_count(), in_atomic(), freezing(current));
-
 	/*
 	 * Either request is already in userspace, or it was forced.
 	 * Wait for 10 seconds to avoid getting stuck.
 	 */
-	while (!test_bit(FR_FINISHED, &req->flags)) {
-		pr_info("fuse_dbg: before-wait req=%p flags=0x%lx pid=%d preempt_count=%u in_atomic=%d freezing=%d\n",
-			req, (unsigned long)req->flags, current->pid, preempt_count(), in_atomic(), freezing(current));
-
-		ret = wait_event_freezable_timeout(req->waitq,
+	while (!test_bit(FR_FINISHED, &req->flags))
+		wait_event_freezable_timeout(req->waitq,
 			test_bit(FR_FINISHED, &req->flags), 10 * MSEC_PER_SEC);
-
-		pr_info("fuse_dbg: after-wait ret=%ld req=%p flags=0x%lx pid=%d preempt_count=%u in_atomic=%d freezing=%d\n",
-			ret, req, (unsigned long)req->flags, current->pid, preempt_count(), in_atomic(), freezing(current));
-
-		if (!freezing(current))
-			pr_err("fuse_err: req %p wait returned ret=%ld but freezing(current) == false; pid=%d preempt_count=%u in_atomic=%d flags=0x%lx\n",
-				req, ret, current->pid, preempt_count(), in_atomic(), (unsigned long)req->flags);
-	}
-
-	pr_info("fuse_dbg: request_wait_answer: req=%p finished flags=0x%lx pid=%d preempt_count=%u in_atomic=%d freezing=%d\n",
-		req, (unsigned long)req->flags, current->pid, preempt_count(), in_atomic(), freezing(current));
 }
 
 static void __fuse_request_send(struct fuse_conn *fc, struct fuse_req *req)
