@@ -353,6 +353,7 @@ static bool set_nr_and_not_polling(struct task_struct *p)
 	return !(fetch_or(&ti->flags, _TIF_NEED_RESCHED) & _TIF_POLLING_NRFLAG);
 }
 
+#if SCHED_FEAT_TTWU_QUEUE
 /*
  * Atomically set TIF_NEED_RESCHED if TIF_POLLING_NRFLAG is set.
  *
@@ -376,7 +377,7 @@ static bool set_nr_if_polling(struct task_struct *p)
 	}
 	return true;
 }
-
+#endif
 #else
 static bool set_nr_and_not_polling(struct task_struct *p)
 {
@@ -385,10 +386,12 @@ static bool set_nr_and_not_polling(struct task_struct *p)
 }
 
 #ifdef CONFIG_SMP
+#if SCHED_FEAT_TTWU_QUEUE
 static bool set_nr_if_polling(struct task_struct *p)
 {
 	return false;
 }
+#endif
 #endif
 #endif
 

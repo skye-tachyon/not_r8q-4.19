@@ -731,9 +731,9 @@ static int _sec_debug_summary_init(void)
 		pr_err("return with error[%d]", err);
 		return err;
 	}
-
+#if 0
 	memset_io(secdbg_summary, 0x0, size);
-
+#endif
 	secdbg_summary->_apss =
 		qcom_smem_virt_to_phys(&secdbg_summary->priv.apss);
 	secdbg_summary->_rpm =

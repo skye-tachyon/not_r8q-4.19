@@ -7469,13 +7469,7 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 				}
 				if (best_idle_cpu != -1)
 					continue;
-
-				/*
-				 * Skip searching for active CPU for tasks have
-				 * prefer_high_cap.
-				 */
-				if (schedtune_prefer_high_cap(p))
-					continue;
+					
 				/*
 				 * Case A.2: Target ACTIVE CPU
 				 * Favor CPUs with max spare capacity.
@@ -8067,7 +8061,6 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu,
 				     int sync, int sibling_count_hint)
 {
 	unsigned long prev_energy = ULONG_MAX, best_energy = ULONG_MAX;
-	unsigned long prev_delta = ULONG_MAX, best_delta = ULONG_MAX;
 	unsigned long p_util_min = uclamp_is_used() ? uclamp_eff_value(p, UCLAMP_MIN) : 0;
 	unsigned long p_util_max = uclamp_is_used() ? uclamp_eff_value(p, UCLAMP_MAX) : 1024;
 	struct root_domain *rd = cpu_rq(smp_processor_id())->rd;
@@ -10079,6 +10072,7 @@ static inline enum fbq_type fbq_classify_rq(struct rq *rq)
 
 struct sg_lb_stats;
 
+#ifdef CONFIG_SCHED_WALT
 /*
  * task_running_on_cpu - return 1 if @p is running on @cpu.
  */
@@ -10122,6 +10116,7 @@ static int idle_cpu_without(int cpu, struct task_struct *p)
 
 	return 1;
 }
+#endif
 
 /**
  * update_sd_lb_stats - Update sched_domain's statistics for load balancing.
