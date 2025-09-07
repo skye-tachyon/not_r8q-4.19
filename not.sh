@@ -37,7 +37,7 @@ make -j12 O="$OUT_DIR" $KERNEL_MAKE_ENV $HOST_BUILD_ENV \
      CC="${LLVM_PATH}clang --target=aarch64-linux-gnu" dtbo.img
 
 cp "$DTBO_OUT/dtbo.img" "$ANYKERNEL_DIR/dtbo.img"
-cat "$DTB_OUT"/*.dtb > "$ANYKERNEL_DIR/dtb"
+cat /home/skye/bomb/out/arch/arm64/boot/dts/vendor/qcom/*.dtb > "$ANYKERNEL_DIR/dtb"
 
 # Build Kernel Image
 
