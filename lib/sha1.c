@@ -66,24 +66,22 @@
 #define T_60_79(t, A, B, C, D, E) SHA_ROUND(t, SHA_MIX, (B^C^D) ,  0xca62c1d6, A, B, C, D, E )
 
 /**
- * sha1_transform - single block SHA1 transform (deprecated)
+ * sha_transform - single block SHA1 transform
  *
  * @digest: 160 bit digest to update
  * @data:   512 bits of data to hash
  * @array:  16 words of workspace (see note)
  *
- * This function executes SHA-1's internal compression function.  It updates the
- * 160-bit internal state (@digest) with a single 512-bit data block (@data).
- *
- * Don't use this function.  SHA-1 is no longer considered secure.  And even if
- * you do have to use SHA-1, this isn't the correct way to hash something with
- * SHA-1 as this doesn't handle padding and finalization.
+ * This function generates a SHA1 digest for a single 512-bit block.
+ * Be warned, it does not handle padding and message digest, do not
+ * confuse it with the full FIPS 180-1 digest algorithm for variable
+ * length messages.
  *
  * Note: If the hash is security sensitive, the caller should be sure
  * to clear the workspace. This is left to the caller to avoid
  * unnecessary clears between chained hashing operations.
  */
-void sha1_transform(__u32 *digest, const char *data, __u32 *array)
+void sha_transform(__u32 *digest, const char *data, __u32 *array)
 {
 	__u32 A, B, C, D, E;
 	unsigned int i = 0;
@@ -120,13 +118,13 @@ void sha1_transform(__u32 *digest, const char *data, __u32 *array)
 	digest[3] += D;
 	digest[4] += E;
 }
-EXPORT_SYMBOL(sha1_transform);
+EXPORT_SYMBOL(sha_transform);
 
 /**
- * sha1_init - initialize the vectors for a SHA1 digest
+ * sha_init - initialize the vectors for a SHA1 digest
  * @buf: vector to initialize
  */
-void sha1_init(__u32 *buf)
+void sha_init(__u32 *buf)
 {
 	buf[0] = 0x67452301;
 	buf[1] = 0xefcdab89;
@@ -134,4 +132,4 @@ void sha1_init(__u32 *buf)
 	buf[3] = 0x10325476;
 	buf[4] = 0xc3d2e1f0;
 }
-EXPORT_SYMBOL(sha1_init);
+EXPORT_SYMBOL(sha_init);
