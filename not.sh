@@ -13,8 +13,6 @@ HOST_BUILD_ENV="ARCH=arm64 \
 
 KERNEL_MAKE_ENV="DTC_EXT=$(pwd)/tools/dtc CONFIG_BUILD_ARM64_DT_OVERLAY=y"
 
-DTBO_OUT="/home/skye/bomb/out/arch/arm64/boot"
-DTB_OUT="/home/skye/bomb/out/arch/arm64/boot/dts/vendor/qcom"
 IMAGE="/home/skye/bomb/out/arch/arm64/boot/Image"
 OUT_DIR="/home/skye/bomb/out"
 ANYKERNEL_DIR="/home/skye/bomb/AnyKernel3/r8q"
@@ -24,7 +22,7 @@ echo "*****************************************"
 
 rm -rf "$OUT_DIR/arch/arm64/boot/Image"
 rm -rf "$ANYKERNEL_DIR/dtb"
-rm -rf "$OUT_DIR/dtbo.img"
+rm -rf /home/skye/bomb/out/arch/arm64/boot/dtbo.img
 rm -rf .version .local
 make O="$OUT_DIR" $HOST_BUILD_ENV vendor/kona-not_defconfig vendor/samsung/kona-sec-not.config vendor/samsung/r8q.config
 
@@ -36,7 +34,7 @@ echo "*****************************************"
 make -j12 O="$OUT_DIR" $KERNEL_MAKE_ENV $HOST_BUILD_ENV \
      CC="${LLVM_PATH}clang --target=aarch64-linux-gnu" dtbo.img
 
-cp "$DTBO_OUT/dtbo.img" "$ANYKERNEL_DIR/dtbo.img"
+cp /home/skye/bomb/out/arch/arm64/boot/dtbo.img "$ANYKERNEL_DIR/dtbo.img"
 cat /home/skye/bomb/out/arch/arm64/boot/dts/vendor/qcom/*.dtb > "$ANYKERNEL_DIR/dtb"
 
 # Build Kernel Image
