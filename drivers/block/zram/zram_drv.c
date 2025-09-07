@@ -2768,7 +2768,9 @@ static int __zram_bvec_write(struct zram *zram, struct bio_vec *bvec,
 	unsigned long element = 0;
 	enum zram_pageflags flags = 0;
 #ifdef CONFIG_ZRAM_LRU_WRITEBACK
+#ifdef CONFIG_MEMCG
 	unsigned long irq_flags;
+#endif
 #endif
 
 	mem = kmap_atomic(page);
@@ -2877,6 +2879,7 @@ out:
 		zram_set_entry(zram, index, entry);
 		zram_set_obj_size(zram, index, comp_len);
 #ifdef CONFIG_ZRAM_LRU_WRITEBACK
+#ifdef CONFIG_MEMCG
 		if (!page->mem_cgroup ||
 		    page->mem_cgroup->swappiness != NON_LRU_SWAPPINESS) {
 			spin_lock_irqsave(&zram->list_lock, irq_flags);
@@ -2885,6 +2888,7 @@ out:
 			zram_set_flag(zram, index, ZRAM_LRU);
 			atomic64_inc(&zram->stats.lru_pages);
 		}
+#endif
 #endif
 	}
 	zram_slot_unlock(zram, index);
