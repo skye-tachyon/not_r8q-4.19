@@ -1719,7 +1719,6 @@ int msm_vidc_destroy(struct msm_vidc_inst *inst)
 	mutex_destroy(&inst->lock);
 
 	msm_vidc_debugfs_deinit_inst(inst);
-
 	pr_debug(VIDC_DBG_TAG "Closed video instance: %pK\n",
 			"high", inst->sid, get_codec_name(inst->sid),
 			inst);
