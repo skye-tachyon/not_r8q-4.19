@@ -7084,10 +7084,10 @@ static inline int select_idle_sibling_cstate_aware(struct task_struct *p,
 		sg = sd->groups;
 		do {
 			if (!cpumask_intersects(sched_group_span(sg),
-						&p->cpus_allowed))
+						p->cpus_ptr))
 				goto next;
 
-			for_each_cpu_and(i, &p->cpus_allowed,
+			for_each_cpu_and(i, p->cpus_ptr,
 					  sched_group_span(sg)) {
 				int idle_idx;
 				unsigned long new_usage;
