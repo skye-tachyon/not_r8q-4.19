@@ -815,7 +815,6 @@ const struct clk_ops clk_rcg2_ops = {
 	.set_rate_and_parent = clk_rcg2_set_rate_and_parent,
 	.list_rate = clk_rcg2_list_rate,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL_GPL(clk_rcg2_ops);
 
@@ -829,7 +828,6 @@ const struct clk_ops clk_rcg2_floor_ops = {
 	.set_rate_and_parent = clk_rcg2_set_floor_rate_and_parent,
 	.list_rate = clk_rcg2_list_rate,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL_GPL(clk_rcg2_floor_ops);
 
@@ -960,7 +958,6 @@ const struct clk_ops clk_edp_pixel_ops = {
 	.set_rate_and_parent = clk_edp_pixel_set_rate_and_parent,
 	.determine_rate = clk_edp_pixel_determine_rate,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL_GPL(clk_edp_pixel_ops);
 
@@ -1022,7 +1019,6 @@ const struct clk_ops clk_byte_ops = {
 	.set_rate_and_parent = clk_byte_set_rate_and_parent,
 	.determine_rate = clk_byte_determine_rate,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL_GPL(clk_byte_ops);
 
@@ -1096,7 +1092,6 @@ const struct clk_ops clk_byte2_ops = {
 	.set_rate_and_parent = clk_byte2_set_rate_and_parent,
 	.determine_rate = clk_byte2_determine_rate,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL_GPL(clk_byte2_ops);
 
@@ -1191,7 +1186,6 @@ const struct clk_ops clk_pixel_ops = {
 	.set_rate_and_parent = clk_pixel_set_rate_and_parent,
 	.determine_rate = clk_pixel_determine_rate,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL_GPL(clk_pixel_ops);
 
@@ -1275,7 +1269,6 @@ const struct clk_ops clk_dp_ops = {
 	.set_rate_and_parent = clk_dp_set_rate_and_parent,
 	.determine_rate = clk_dp_determine_rate,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL_GPL(clk_dp_ops);
 
@@ -1371,7 +1364,6 @@ const struct clk_ops clk_gfx3d_ops = {
 	.set_rate_and_parent = clk_gfx3d_set_rate_and_parent,
 	.determine_rate = clk_gfx3d_determine_rate,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL_GPL(clk_gfx3d_ops);
 
@@ -1585,7 +1577,6 @@ const struct clk_ops clk_rcg2_shared_ops = {
 	.set_rate = clk_rcg2_shared_set_rate,
 	.set_rate_and_parent = clk_rcg2_shared_set_rate_and_parent,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL_GPL(clk_rcg2_shared_ops);
 
@@ -1883,7 +1874,6 @@ const struct clk_ops clk_rcg2_dependent_ops = {
 	.set_rate_and_parent = clk_rcg2_dependent_set_rate_and_parent,
 	.list_rate = clk_rcg2_list_rate,
 	.list_registers = clk_rcg2_list_registers,
-	.bus_vote = clk_debug_bus_vote,
 };
 EXPORT_SYMBOL(clk_rcg2_dependent_ops);
 
