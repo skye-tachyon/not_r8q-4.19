@@ -13,7 +13,7 @@ do.cleanuponabort=0
 device.name1=r8q
 device.name2=r8qxx
 device.name3=r8qxxx
-supported.versions=13 - 18
+supported.versions=15 - 18
 supported.patchlevels=
 '; } # end properties
 
@@ -40,7 +40,7 @@ gsi=$(file_getprop /system/build.prop ro.product.system.device);
 cos=$(file_getprop /system/build.prop ro.product.system.brand);
 if [ -n "$oneui" ]; then
    ui_print " "
-   ui_print " • OneUI ROM detected! • " # OneUI 7.X/6.X/5.X/4.X/3.X bomb
+   ui_print " • OneUI ROM detected! • " # OneUI 7.X+ bomb
    ui_print " "
    ui_print " • Patching Fingerprint Sensor... • "
    patch_cmdline "android.is_aosp" "android.is_aosp=0";
@@ -67,7 +67,7 @@ elif [ $cos == oplus ]; then
    patch_cmdline "ro.boot.verifiedbootstate" "ro.boot.verifiedbootstate=green";
 else
    ui_print " "
-   ui_print " • AOSP ROM detected! • " # Android 16/15/14/13 veri gud
+   ui_print " • AOSP ROM detected! • " # Android 16/15 veri gud
    ui_print " "
    ui_print " • Patching Fingerprint Sensor... • "
    patch_cmdline "android.is_aosp" "android.is_aosp=1";
