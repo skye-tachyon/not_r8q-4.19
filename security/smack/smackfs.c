@@ -27,6 +27,7 @@
 #include <linux/ctype.h>
 #include <linux/audit.h>
 #include <linux/magic.h>
+#include <linux/fs_context.h>
 #include "smack.h"
 
 #define BEBITS	(sizeof(__be32) * 8)
@@ -949,6 +950,10 @@ static ssize_t smk_set_cipso(struct file *file, const char __user *buf,
 	if (rc >= 0) {
 		old_cat = skp->smk_netlabel.attr.mls.cat;
 		rcu_assign_pointer(skp->smk_netlabel.attr.mls.cat, ncats.attr.mls.cat);
+		if (ncats.attr.mls.cat)
+			skp->smk_netlabel.flags |= NETLBL_SECATTR_MLS_CAT;
+		else
+			skp->smk_netlabel.flags &= ~(u32)NETLBL_SECATTR_MLS_CAT;
 		skp->smk_netlabel.attr.mls.lvl = ncats.attr.mls.lvl;
 		synchronize_rcu();
 		netlbl_catmap_free(old_cat);
@@ -2886,14 +2891,13 @@ static const struct file_operations smk_ptrace_ops = {
 /**
  * smk_fill_super - fill the smackfs superblock
  * @sb: the empty superblock
- * @data: unused
- * @silent: unused
+ * @fc: unused
  *
  * Fill in the well known entries for the smack filesystem
  *
  * Returns 0 on success, an error code on failure
  */
-static int smk_fill_super(struct super_block *sb, void *data, int silent)
+static int smk_fill_super(struct super_block *sb, struct fs_context *fc)
 {
 	int rc;
 	struct inode *root_inode;
@@ -2966,25 +2970,35 @@ static int smk_fill_super(struct super_block *sb, void *data, int silent)
 }
 
 /**
- * smk_mount - get the smackfs superblock
- * @fs_type: passed along without comment
- * @flags: passed along without comment
- * @dev_name: passed along without comment
- * @data: passed along without comment
+ * smk_get_tree - get the smackfs superblock
+ * @fc: The mount context, including any options
  *
  * Just passes everything along.
  *
  * Returns what the lower level code does.
  */
-static struct dentry *smk_mount(struct file_system_type *fs_type,
-		      int flags, const char *dev_name, void *data)
+static int smk_get_tree(struct fs_context *fc)
 {
-	return mount_single(fs_type, flags, data, smk_fill_super);
+	return get_tree_single(fc, smk_fill_super);
+}
+
+static const struct fs_context_operations smk_context_ops = {
+	.get_tree	= smk_get_tree,
+};
+
+/**
+ * smk_init_fs_context - Initialise a filesystem context for smackfs
+ * @fc: The blank mount context
+ */
+static int smk_init_fs_context(struct fs_context *fc)
+{
+	fc->ops = &smk_context_ops;
+	return 0;
 }
 
 static struct file_system_type smk_fs_type = {
 	.name		= "smackfs",
-	.mount		= smk_mount,
+	.init_fs_context = smk_init_fs_context,
 	.kill_sb	= kill_litter_super,
 };
 

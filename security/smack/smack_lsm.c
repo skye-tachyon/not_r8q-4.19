@@ -552,6 +552,19 @@ static void smack_sb_free_security(struct super_block *sb)
 	sb->s_security = NULL;
 }
 
+static void smack_free_mnt_opts(void *mnt_opts)
+{
+	struct security_mnt_opts *opts = mnt_opts;
+	int i;
+
+	if (opts->mnt_opts)
+		for (i = 0; i < opts->num_mnt_opts; i++)
+			kfree(opts->mnt_opts[i]);
+	kfree(opts->mnt_opts);
+	kfree(opts->mnt_opts_flags);
+	kfree(opts);
+}
+
 /**
  * smack_sb_copy_data - copy mount options data for processing
  * @orig: where to start
@@ -609,8 +622,9 @@ static int smack_sb_copy_data(char *orig, char *smackopts)
  * converts Smack specific mount options to generic security option format
  */
 static int smack_parse_opts_str(char *options,
-		struct security_mnt_opts *opts)
+		void **mnt_opts)
 {
+	struct security_mnt_opts *opts = *mnt_opts;
 	char *p;
 	char *fsdefault = NULL;
 	char *fsfloor = NULL;
@@ -621,10 +635,16 @@ static int smack_parse_opts_str(char *options,
 	int num_mnt_opts = 0;
 	int token;
 
-	opts->num_mnt_opts = 0;
-
 	if (!options)
 		return 0;
+
+	if (!opts) {
+		opts = kzalloc(sizeof(struct security_mnt_opts), GFP_KERNEL);
+		*mnt_opts = opts;
+		if (!opts)
+			return -ENOMEM;
+	}
+	opts->num_mnt_opts = 0;
 
 	while ((p = strsep(&options, ",")) != NULL) {
 		substring_t args[MAX_OPT_ARGS];
@@ -720,7 +740,22 @@ out_err:
 	kfree(fshat);
 	kfree(fsroot);
 	kfree(fstransmute);
+	security_free_mnt_opts(mnt_opts);
 	return rc;
+}
+
+static int smack_sb_eat_lsm_opts(char *options, void **mnt_opts)
+{
+	char *s = (char *)get_zeroed_page(GFP_KERNEL);
+	int err;
+
+	if (!s)
+		return -ENOMEM;
+	err = smack_sb_copy_data(options, s);
+	if (!err)
+		err = smack_parse_opts_str(s, mnt_opts);
+	free_page((unsigned long)s);
+	return err;
 }
 
 /**
@@ -736,7 +771,7 @@ out_err:
  * labels.
  */
 static int smack_set_mnt_opts(struct super_block *sb,
-		struct security_mnt_opts *opts,
+		void *mnt_opts,
 		unsigned long kern_flags,
 		unsigned long *set_kern_flags)
 {
@@ -746,7 +781,8 @@ static int smack_set_mnt_opts(struct super_block *sb,
 	struct inode_smack *isp;
 	struct smack_known *skp;
 	int i;
-	int num_opts = opts->num_mnt_opts;
+	struct security_mnt_opts *opts = mnt_opts;
+	int num_opts = opts ? opts->num_mnt_opts : 0;
 	int transmute = 0;
 
 	if (sp->smk_flags & SMK_SB_INITIALIZED)
@@ -835,37 +871,6 @@ static int smack_set_mnt_opts(struct super_block *sb,
 	}
 
 	return 0;
-}
-
-/**
- * smack_sb_kern_mount - Smack specific mount processing
- * @sb: the file system superblock
- * @flags: the mount flags
- * @data: the smack mount options
- *
- * Returns 0 on success, an error code on failure
- */
-static int smack_sb_kern_mount(struct super_block *sb, int flags, void *data)
-{
-	int rc = 0;
-	char *options = data;
-	struct security_mnt_opts opts;
-
-	security_init_mnt_opts(&opts);
-
-	if (!options)
-		goto out;
-
-	rc = smack_parse_opts_str(options, &opts);
-	if (rc)
-		goto out_err;
-
-out:
-	rc = smack_set_mnt_opts(sb, &opts, 0, NULL);
-
-out_err:
-	security_free_mnt_opts(&opts);
-	return rc;
 }
 
 /**
@@ -3989,12 +3994,12 @@ access_check:
  * returns zero on success, an error code otherwise
  */
 static int smack_socket_getpeersec_stream(struct socket *sock,
-					  char __user *optval,
-					  int __user *optlen, unsigned len)
+					  sockptr_t optval, sockptr_t optlen,
+					  unsigned int len)
 {
 	struct socket_smack *ssp;
 	char *rcp = "";
-	int slen = 1;
+	u32 slen = 1;
 	int rc = 0;
 
 	ssp = sock->sk->sk_security;
@@ -4002,15 +4007,16 @@ static int smack_socket_getpeersec_stream(struct socket *sock,
 		rcp = ssp->smk_packet->smk_known;
 		slen = strlen(rcp) + 1;
 	}
-
-	if (slen > len)
+	if (slen > len) {
 		rc = -ERANGE;
-	else if (copy_to_user(optval, rcp, slen) != 0)
-		rc = -EFAULT;
+		goto out_len;
+	}
 
-	if (put_user(slen, optlen) != 0)
+	if (copy_to_sockptr(optval, rcp, slen))
 		rc = -EFAULT;
-
+out_len:
+	if (copy_to_sockptr(optlen, &slen, sizeof(slen)))
+		rc = -EFAULT;
 	return rc;
 }
 
@@ -4634,11 +4640,10 @@ static struct security_hook_list smack_hooks[] __lsm_ro_after_init = {
 
 	LSM_HOOK_INIT(sb_alloc_security, smack_sb_alloc_security),
 	LSM_HOOK_INIT(sb_free_security, smack_sb_free_security),
-	LSM_HOOK_INIT(sb_copy_data, smack_sb_copy_data),
-	LSM_HOOK_INIT(sb_kern_mount, smack_sb_kern_mount),
+	LSM_HOOK_INIT(sb_free_mnt_opts, smack_free_mnt_opts),
+	LSM_HOOK_INIT(sb_eat_lsm_opts, smack_sb_eat_lsm_opts),
 	LSM_HOOK_INIT(sb_statfs, smack_sb_statfs),
 	LSM_HOOK_INIT(sb_set_mnt_opts, smack_set_mnt_opts),
-	LSM_HOOK_INIT(sb_parse_opts_str, smack_parse_opts_str),
 
 	LSM_HOOK_INIT(bprm_set_creds, smack_bprm_set_creds),
 

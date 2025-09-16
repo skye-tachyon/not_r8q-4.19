@@ -96,5 +96,6 @@
 #define ZSMALLOC_MAGIC		0x58295829
 #define DMA_BUF_MAGIC		0x444d4142	/* "DMAB" */
 #define KZEROD_MAGIC		0x58296829
+#define Z3FOLD_MAGIC		0x33
 
 #endif /* __LINUX_MAGIC_H__ */
