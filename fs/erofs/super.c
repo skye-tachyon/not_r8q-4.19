@@ -10,6 +10,7 @@
 #include <linux/seq_file.h>
 #include <linux/crc32c.h>
 #include "xattr.h"
+#include <linux/cleancache.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/erofs.h>
@@ -595,6 +596,8 @@ static int erofs_fill_super(struct super_block *sb, void *data, int silent)
 	err = erofs_init_managed_cache(sb);
 	if (err)
 		return err;
+
+	cleancache_init_fs(sb);
 
 	erofs_info(sb, "mounted with opts: %s, root inode @ nid %llu.",
 		   (char *)data, ROOT_NID(sbi));
