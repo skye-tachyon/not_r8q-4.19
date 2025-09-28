@@ -29,17 +29,13 @@ void cpufreq_add_update_util_hook(int cpu, struct update_util_data *data,
 void cpufreq_remove_update_util_hook(int cpu);
 bool cpufreq_this_cpu_can_update(struct cpufreq_policy *policy);
 
-static unsigned long scale_cap[8] = {
-	1280, 1280, 1280, 1280, 1024, 1024, 1024, 1280
-};
-
 static inline unsigned long map_util_freq(unsigned long util,
-		   unsigned long freq, unsigned long cap, int cpu)
+					unsigned long freq, unsigned long cap)
 {
-	return (freq * scale_cap[cpu] >> SCHED_CAPACITY_SHIFT) * util / cap;
+	return freq * util / cap;
 }
 
-static inline unsigned long map_util_perf(unsigned long util)
+static inline __maybe_unused unsigned long map_util_perf(unsigned long util)
 {
 	return util + (util >> 2);
 }

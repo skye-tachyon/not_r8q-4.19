@@ -119,7 +119,7 @@ static inline unsigned long em_pd_energy(struct em_perf_domain *pd,
 	cs = &pd->table[pd->nr_cap_states - 1];
 	
 	max_util = min(max_util, allowed_cpu_cap);
-	freq = map_util_freq(max_util, cs->frequency, scale_cpu, cpu);
+	freq = map_util_freq(max_util, cs->frequency, scale_cpu);
 
 	/*
 	 * Find the lowest capacity state of the Energy Model above the
