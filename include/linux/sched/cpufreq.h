@@ -30,7 +30,7 @@ void cpufreq_remove_update_util_hook(int cpu);
 bool cpufreq_this_cpu_can_update(struct cpufreq_policy *policy);
 
 static unsigned long scale_cap[8] = {
-	1280, 1280, 1280, 1280, 1024, 1024, 1024, 1114
+	1280, 1280, 1280, 1280, 1024, 1024, 1024, 1280
 };
 
 static inline unsigned long map_util_freq(unsigned long util,
