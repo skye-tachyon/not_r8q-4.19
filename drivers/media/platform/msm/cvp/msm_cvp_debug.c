@@ -208,7 +208,6 @@ failed_create_dir:
 
 	return NULL;
 }
-#endif
 
 static int _clk_rate_set(void *data, u64 val)
 {
@@ -263,7 +262,6 @@ static int _clk_rate_get(void *data, u64 *val)
 	return 0;
 }
 
-#ifdef CONFIG_DEBUG_FS
 DEFINE_DEBUGFS_ATTRIBUTE(clk_rate_fops, _clk_rate_get, _clk_rate_set, "%llu\n");
 
 struct dentry *msm_cvp_debugfs_init_core(struct msm_cvp_core *core,
