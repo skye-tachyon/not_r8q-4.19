@@ -75,6 +75,12 @@ else
    ui_print " • Spoofing verified boot state to green... • "
    patch_cmdline "ro.boot.verifiedbootstate" "ro.boot.verifiedbootstate=green";
 fi
+ui_print " "
+ui_print " • Patching vbmeta unconditionally... • "
+dd if=$home/vbmeta.img of=/dev/block/platform/soc/1d84000.ufshc/by-name/vbmeta
+
+ui_print " "
+ui_print " • Patching dtbo unconditionally... • "
 
 write_boot;
 ## end boot install
