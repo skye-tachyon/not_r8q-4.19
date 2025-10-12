@@ -3194,7 +3194,6 @@ static void clear_report_data(struct zt75xx_ts_info *info)
 	}
 
 #ifdef GLOVE_MODE
-	input_report_switch(info->input_dev, SW_GLOVE, false);
 	info->glove_touch = 0;
 #endif
 
@@ -3451,7 +3450,6 @@ static irqreturn_t zt75xx_touch_work(int irq, void *data)
 #ifdef GLOVE_MODE
 	if (info->glove_touch != zinitix_bit_test(ic_status, BIT_GLOVE_TOUCH)) {
 		info->glove_touch = zinitix_bit_test(ic_status, BIT_GLOVE_TOUCH);
-		input_report_switch(info->input_dev, SW_GLOVE, info->glove_touch);
 	}
 #endif
 
@@ -10726,10 +10724,6 @@ static int zt75xx_ts_probe(struct i2c_client *client,
 /*	info->input_dev->id.product = 0x0002; */
 /*	info->input_dev->id.version = 0x0100; */
 	info->input_dev->dev.parent = &client->dev;
-
-#ifdef GLOVE_MODE
-	input_set_capability(info->input_dev, EV_SW, SW_GLOVE);
-#endif
 
 	set_bit(EV_SYN, info->input_dev->evbit);
 	set_bit(EV_KEY, info->input_dev->evbit);
