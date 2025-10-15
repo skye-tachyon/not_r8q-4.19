@@ -257,8 +257,6 @@ static inline bool is_i_uid_not_allowed(uid_t i_uid) {
 }
 
 bool susfs_is_base_dentry_android_data_dir(struct dentry* base) {
-	if (!base || !base->d_inode || !base->d_inode->i_mapping)
-		return false;
 	return (base->d_inode->i_mapping->flags & BIT_ANDROID_DATA_ROOT_DIR);
 }
 
