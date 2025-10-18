@@ -60,7 +60,7 @@ config KSU_SUSFS_HAS_MAGIC_MOUNT
 config KSU_SUSFS_SUS_PATH
     bool "Enable to hide suspicious path (NOT recommended)"
     depends on KSU_SUSFS
-    default y
+    default n
     help
       - Allow hiding the user-defined path and all its sub-paths from various system calls.
       - Includes temp fix for the leaks of app path in /sdcard/Android/data directory.
@@ -99,7 +99,7 @@ config KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT
 config KSU_SUSFS_SUS_KSTAT
     bool "Enable to spoof suspicious kstat"
     depends on KSU_SUSFS
-    default y
+    default n
     help
       - Allow spoofing the kstat of user-defined file/directory.
       - Effective only on zygote spawned user app process.
@@ -107,7 +107,7 @@ config KSU_SUSFS_SUS_KSTAT
 config KSU_SUSFS_TRY_UMOUNT
     bool "Enable to use ksu's ksu_try_umount"
     depends on KSU_SUSFS
-    default y
+    default n
     help
       - Allow using ksu_try_umount to umount other user-defined mount paths prior to ksu's default umount paths.
       - Effective on all NO-root-access-granted processes.
@@ -115,7 +115,7 @@ config KSU_SUSFS_TRY_UMOUNT
 config KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT
     bool "Enable to add bind mounts to ksu's ksu_try_umount automatically (experimental)"
     depends on KSU_SUSFS_TRY_UMOUNT
-    default y
+    default n
     help
       - Automatically add binded mounts to ksu's ksu_try_umount.
       - No susfs command is needed in userspace.
@@ -124,7 +124,7 @@ config KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT
 config KSU_SUSFS_SPOOF_UNAME
     bool "Enable to spoof uname"
     depends on KSU_SUSFS
-    default y
+    default n
     help
       - Allow spoofing the string returned by uname syscall to user-defined string.
       - Effective on all processes.
@@ -155,7 +155,7 @@ config KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
 config KSU_SUSFS_OPEN_REDIRECT
     bool "Enable to redirect a path to be opened with another path (experimental)"
     depends on KSU_SUSFS
-    default y
+    default n
     help
       - Allow redirecting a target path to be opened with another user-defined path.
       - Effective only on processes with uid < 2000.
