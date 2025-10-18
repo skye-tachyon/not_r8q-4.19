@@ -1154,11 +1154,11 @@ int ksu_handle_setuid(struct cred *new, const struct cred *old)
 			susfs_set_current_proc_su_not_allowed();
 #endif
 			task_unlock(current);
-#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 			if (susfs_is_umount_for_zygote_iso_service_enabled) {
 				goto out_susfs_try_umount_all;
 			}
-#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#endif // #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 		}
 	}
 #endif // #ifdef CONFIG_KSU_SUSFS
