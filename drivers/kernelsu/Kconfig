@@ -45,14 +45,14 @@ config KSU_SUSFS
     bool "KernelSU addon - SUSFS"
     depends on KSU
     depends on THREAD_INFO_IN_TASK
-    default n
+    default y
     help
       Patch and Enable SUSFS to kernel with KernelSU.
 
 config KSU_SUSFS_HAS_MAGIC_MOUNT
     bool "Say yes if the current KernelSU repo has magic mount implemented (default y)"
     depends on KSU
-    default n
+    default y
     help
       - Enable to indicate that the current SUSFS kernel supports the auto hide features for 5ec1cff's Magic Mount KernelSU
       - Every mounts from /debug_ramdisk/workdir will be treated as magic mount and processed differently by susfs
@@ -71,7 +71,7 @@ config KSU_SUSFS_SUS_PATH
 config KSU_SUSFS_SUS_MOUNT
     bool "Enable to hide suspicious mounts"
     depends on KSU_SUSFS
-    default n
+    default y
     help
       - Allow hiding the user-defined mount paths from /proc/self/[mounts|mountinfo|mountstat].
       - Effective on all processes for hiding mount entries.
@@ -81,7 +81,7 @@ config KSU_SUSFS_SUS_MOUNT
 config KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT
     bool "Enable to hide KSU's default mounts automatically (experimental)"
     depends on KSU_SUSFS_SUS_MOUNT
-    default n
+    default y
     help
       - Automatically add KSU's default mounts to sus_mount.
       - No susfs command is needed in userspace.
@@ -90,7 +90,7 @@ config KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT
 config KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT
     bool "Enable to hide suspicious bind mounts automatically (experimental)"
     depends on KSU_SUSFS_SUS_MOUNT
-    default n
+    default y
     help
       - Automatically add binded mounts to sus_mount.
       - No susfs command is needed in userspace.
@@ -139,7 +139,7 @@ config KSU_SUSFS_ENABLE_LOG
 config KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
     bool "Enable to automatically hide ksu and susfs symbols from /proc/kallsyms"
     depends on KSU_SUSFS
-    default n
+    default y
     help
       - Automatically hide ksu and susfs symbols from '/proc/kallsyms'.
       - Effective on all processes.
@@ -147,7 +147,7 @@ config KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
 config KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
     bool "Enable to spoof /proc/bootconfig (gki) or /proc/cmdline (non-gki)"
     depends on KSU_SUSFS
-    default n
+    default y
     help
       - Spoof the output of /proc/bootconfig (gki) or /proc/cmdline (non-gki) with a user-defined file.
       - Effective on all processes.
