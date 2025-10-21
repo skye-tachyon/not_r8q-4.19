@@ -125,7 +125,7 @@ struct dp_rx_desc {
 };
 
 /* RX Descriptor Multi Page memory alloc related */
-#define DP_RX_DESC_OFFSET_NUM_BITS 8
+#define DP_RX_DESC_OFFSET_NUM_BITS 10
 #define DP_RX_DESC_PAGE_ID_NUM_BITS 8
 #define DP_RX_DESC_POOL_ID_NUM_BITS 4
 
