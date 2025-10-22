@@ -71,6 +71,9 @@ struct vfsmount {
 	struct super_block *mnt_sb;	/* pointer to superblock */
 	int mnt_flags;
 	void *data;
+#ifdef CONFIG_KSU_SUSFS
+	u64 susfs_mnt_id_backup;
+#endif
 	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
