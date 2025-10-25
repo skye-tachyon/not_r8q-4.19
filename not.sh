@@ -24,7 +24,7 @@ rm -rf "$OUT_DIR/arch/arm64/boot/Image"
 rm -rf "$ANYKERNEL_DIR/dtb"
 rm -rf $HOME/bomb/out/arch/arm64/boot/dtbo.img
 rm -rf .version .local
-make O="$OUT_DIR" $HOST_BUILD_ENV vendor/kona-not_defconfig vendor/samsung/kona-sec-not.config vendor/samsung/r8q.config vendor/kali.config
+make O="$OUT_DIR" $HOST_BUILD_ENV vendor/kona-not_defconfig vendor/samsung/kona-sec-not.config vendor/samsung/r8q.config vendor/kali.config vendor/lindroid.config
 
 echo "*****************************************"
 echo "*****************************************"
