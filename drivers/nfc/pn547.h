@@ -36,10 +36,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  ******************************************************************************/
-#ifndef _PN553_H_
-#define _PN553_H_
+#ifndef _PN547_H_
+#define _PN547_H_
 
 #include <linux/miscdevice.h>
+
+#include "nfc_wakelock.h"
 
 #define FEATURE_CORE_RESET_NTF_CHECK
 
@@ -52,17 +54,21 @@ enum nfc_err_state {
 
 #define CORE_RESET_NTF_NO_CLOCK		0x00205FD100A0ULL
 #define CORE_RESET_NTF_CLOCK_LOST	0x0000000000A4ULL
+#define CORE_RESET_POWER_RESET_L	0x0000000404200201ULL
+#define CORE_RESET_POWER_RESET_H	0x0000000000000001ULL
 #endif
 
 #if !defined(CONFIG_NFC_FEATURE_SN100U)
 #define FEATURE_PN80T
 #else
 #define FEATURE_SN100X
+#ifdef CONFIG_NFC_PN547_ESE_SUPPORT
 /*
  * VEN is kept ON all the time if you define the macro VEN_ALWAYS_ON.
  * Used for SN100 usecases
  */
 #define VEN_ALWAYS_ON
+#endif
 #endif
 
 #define SEC_NFC_WAKELOCK
@@ -75,7 +81,7 @@ enum nfc_err_state {
  * PN544_SET_PWR(1): power on
  * PN544_SET_PWR(2): reset and power on with firmware download enabled
  */
-#define PN547_SET_PWR             _IOW(PN547_MAGIC, 0x01, long)
+#define PN547_SET_PWR             _IOW(PN547_MAGIC, 0x01, uint64_t)
 
 /*
  * SPI Request NFCC to enable p61 power, only in param
@@ -85,43 +91,43 @@ enum nfc_err_state {
  * This also be used to perform eSE cold reset when
  * argument value is 0x03
  */
-#define P61_SET_SPI_PWR          _IOW(PN547_MAGIC, 0x02, long)
+#define P61_SET_SPI_PWR          _IOW(PN547_MAGIC, 0x02, uint64_t)
 
 /* SPI or DWP can call this ioctl to get the current power state of P61 */
-#define P61_GET_PWR_STATUS       _IOR(PN547_MAGIC, 0x03, long)
+#define P61_GET_PWR_STATUS       _IOR(PN547_MAGIC, 0x03, uint64_t)
 
 /*
  * DWP side this ioctl will be called
  * level 1 = Wired access is enabled/ongoing
  * level 0 = Wired access is disalbed/stopped
  */
-#define P61_SET_WIRED_ACCESS     _IOW(PN547_MAGIC, 0x04, long)
+#define P61_SET_WIRED_ACCESS     _IOW(PN547_MAGIC, 0x04, uint64_t)
 
 /* NFC Init will call the ioctl to register the PID with the i2c driver */
-#define P547_SET_NFC_SERVICE_PID _IOW(PN547_MAGIC, 0x05, long)
+#define P547_SET_NFC_SERVICE_PID _IOW(PN547_MAGIC, 0x05, uint64_t)
 
 /* NFC and SPI will call the ioctl to get the i2c/spi bus access */
-#define P547_GET_ESE_ACCESS      _IOW(PN547_MAGIC, 0x06, long)
+#define P547_GET_ESE_ACCESS      _IOW(PN547_MAGIC, 0x06, uint64_t)
 
 /* NFC and SPI will call the ioctl to update the power scheme */
-#define P547_SET_POWER_SCHEME    _IOW(PN547_MAGIC, 0x07, long)
+#define P547_SET_POWER_SCHEME    _IOW(PN547_MAGIC, 0x07, uint64_t)
 
 /* NFC will call the ioctl to release the svdd protection */
-#define P547_REL_SVDD_WAIT       _IOW(PN547_MAGIC, 0x08, long)
+#define P547_REL_SVDD_WAIT       _IOW(PN547_MAGIC, 0x08, uint64_t)
 
 /* SPI or DWP can call this ioctl to get the current power state of P61 */
-#define PN547_SET_DWNLD_STATUS   _IOW(PN547_MAGIC, 0x09, long)
+#define PN547_SET_DWNLD_STATUS   _IOW(PN547_MAGIC, 0x09, uint64_t)
 
 /* NFC will call the ioctl to release the dwp on/off protection */
-#define P547_REL_DWPONOFF_WAIT   _IOW(PN547_MAGIC, 0x0A, long)
+#define P547_REL_DWPONOFF_WAIT   _IOW(PN547_MAGIC, 0x0A, uint64_t)
 
 /* NFC HAL can call this ioctl to get the current IRQ state */
-#define PN547_GET_IRQ_STATE    _IOW(PN547_MAGIC, 0x0C, long)
+#define PN547_GET_IRQ_STATE    _IOW(PN547_MAGIC, 0x0C, uint64_t)
 
 #define NFC_I2C_LDO_ON	1
 #define NFC_I2C_LDO_OFF	0
 
-/* vendor/samsung/interfaces/nfc/nxp/SN100x/halimpl/tml/phTmlNfc_i2c.h#4 */
+/* //QUEEN/Cinnamon/vendor/samsung/interfaces/nfc/nxp/SN100x/halimpl/tml/phTmlNfc_i2c.h#4 */
 enum {
 	MODE_POWER_OFF = 0x00,
 	MODE_POWER_ON,
@@ -170,6 +176,39 @@ enum {
 
 #define P61_STATE_JCP_DL 0x8000
 
+/* SFR bit mask */
+#define PN547_NFC_CLKCTRL_PD		0x01
+#define PN547_NFC_CLKCTRL_PD_POLA	0x20
+
+#define PN547_NFC_CLKCTRL_CLK_REQ_ENABLE	(1 << 31)
+/* below two values are different with Ramen */
+#define PN547_NFC_CLKCTRL_REQ_POLA	(1 << 30)
+#define PN547_NFC_CLKCTRL_CLK_ENABLE	(1)
+
+#ifndef CONFIG_SEC_NFC_LOGGER
+#define NFC_LOG_ERR(fmt, ...)		pr_err("sec_nfc: "fmt, ##__VA_ARGS__)
+#define NFC_LOG_INFO(fmt, ...)		pr_info("sec_nfc: "fmt, ##__VA_ARGS__)
+#define NFC_LOG_INFO_WITH_DATE(fmt, ...) pr_info("sec_nfc: "fmt, ##__VA_ARGS__)
+#define NFC_LOG_DBG(fmt, ...)		pr_debug("sec_nfc: "fmt, ##__VA_ARGS__)
+#define NFC_LOG_REC(fmt, ...)		do { } while (0)
+
+#define nfc_print_hex_dump(a, b, c)	do { } while (0)
+#define nfc_logger_init()		do { } while (0)
+#define nfc_logger_set_max_count(a)	do { } while (0)
+#define nfc_logger_register_nfc_stauts_func(a)	do { } while (0)
+#endif
+
+enum secure_state {
+	NOT_CHECKED,
+	ESE_SECURED,
+	ESE_NOT_SECURED,
+};
+
+enum pn547_nfc_power {
+	PN547_NFC_PW_OFF = 0,
+	PN547_NFC_PW_ON,
+};
+
 enum p61_access_state {
 	P61_STATE_INVALID   = 0x0000,
 	P61_STATE_IDLE      = 0x0100, /* p61 is free to use */
@@ -201,11 +240,28 @@ enum jcop_dwnld_state {
 
 };
 
+enum ap_vendors {
+	AP_VENDOR_NONE,
+	AP_VENDOR_SLSI,
+	AP_VENDOR_QCT,
+	AP_VENDOR_MTK,
+	AP_VENDOR_ERR
+};
+
+enum lpm_status {
+	LPM_NO_SUPPORT = -1,
+	LPM_FALSE,
+	LPM_TRUE
+};
+
 #if defined(CONFIG_NFC_FEATURE_SN100U)
 void pn547_register_ese_shutdown(void (*func)(void));
 #endif
 
+#if IS_ENABLED(CONFIG_BATTERY_SAMSUNG) && !defined(CONFIG_NFC_PVDD_LATE_ENABLE)
 extern unsigned int lpcharge;
+#endif
+extern int ese_spi_pinctrl(int enable);
 
 struct pn547_dev {
 	wait_queue_head_t read_wq;
@@ -218,13 +274,10 @@ struct pn547_dev {
 	int irq_gpio;
 	int pvdd;
 	struct regulator *nfc_pvdd;
-
+	void __iomem	*clkctrl;
 #ifdef CONFIG_NFC_PN547_ESE_SUPPORT
 #ifdef FEATURE_PN80T
 	int ese_pwr_req;
-#endif
-#ifdef ISO_RST
-	int iso_rst_gpio; /* ISO-RST pin gpio*/
 #endif
 	enum p61_access_state  p61_current_state;
 	struct completion ese_comp;
@@ -239,9 +292,8 @@ struct pn547_dev {
 	atomic_t irq_enabled;
 	spinlock_t irq_enabled_lock;
 	bool cancel_read;
-#ifdef SEC_NFC_WAKELOCK
-	struct wakeup_source	*ws;
-#endif
+	struct nfc_wake_lock nfc_wake_lock;
+	struct nfc_wake_lock nfc_clk_wake_lock;
 	struct clk *nfc_clock;
 	struct clk *clk;
 	int  i2c_probe;
@@ -250,13 +302,11 @@ struct pn547_dev {
 
 	int  clk_req_gpio;
 	int  clk_req_irq;
+	phys_addr_t clkctrl_addr; /*use NFC block of AP*/
 	bool clk_req_wake;
-#ifdef CONFIG_NFC_PN547_CLOCK_REQUEST
-	struct msm_xo_voter *nfc_clock;
-	struct work_struct work_nfc_clock;
-	struct workqueue_struct *wq_clock;
-	bool clock_state;
-#endif
+	bool clk_req_irq_enabled;
+	bool clk_req_wakelock;
+	bool irq_all_trigger;
 
 	long nfc_service_pid; /*used to signal the nfc the nfc service */
 
@@ -284,6 +334,7 @@ struct pn547_dev {
 	uint8_t state_flags;
 	void (*ese_shutdown)(void);
 #endif
+	enum ap_vendors ap_vendor;
 };
 
 ssize_t pn547_dev_read(struct file *filp, char __user *buf,
