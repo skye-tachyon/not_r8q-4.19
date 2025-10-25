@@ -9534,7 +9534,7 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 	pdata->pm_qos_noise_wa = of_parse_phandle(pdev->dev.of_node,
 							"pm_qos_noise_wa", 0);
 
-	if (pdata->pm_qos_noise_wa) {
+	if (pdata->pm_qos_noise_wa && !pm_qos_request_active(&noise_wa_req)) {
 		dev_info(&pdev->dev,
 			"%s: pm noise\n", __func__);
 		noise_wa_req.type = PM_QOS_REQ_ALL_CORES;
@@ -9765,7 +9765,7 @@ static int msm_asoc_machine_remove(struct platform_device *pdev)
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 
 	if (of_parse_phandle(pdev->dev.of_node,
-		"pm_qos_noise_wa", 0)) {
+		"pm_qos_noise_wa", 0) && pm_qos_request_active(&noise_wa_req)) {
 		pm_qos_remove_request(&noise_wa_req);
 	}
 	snd_event_master_deregister(&pdev->dev);
