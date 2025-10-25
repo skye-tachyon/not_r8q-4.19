@@ -34,7 +34,11 @@
 
 #include "nfc_logger.h"
 
+#ifdef CONFIG_NFC_LOGGER_LOWMEM
+#define BUF_SIZE	SZ_64K
+#else
 #define BUF_SIZE	SZ_128K
+#endif
 #define BOOT_LOG_SIZE	2400
 #define MAX_STR_LEN	160
 #define PROC_FILE_NAME	"nfclog"
@@ -55,6 +59,7 @@ void nfc_logger_set_max_count(int count)
 	g_log_max_count = count;
 }
 
+#ifdef CONFIG_SEC_NFC_LOGGER_ADD_ACPM_LOG
 void nfc_logger_get_date_time(char *date_time, int size)
 {
 	struct timespec64 ts;
@@ -68,11 +73,24 @@ void nfc_logger_get_date_time(char *date_time, int size)
 	len = snprintf(date_time, size, "%02d-%02d %02d:%02d:%02d.%03lu", tm.tm_mon + 1, tm.tm_mday,
 				tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec / 1000000);
 
-#ifdef CONFIG_SEC_NFC_LOGGER_ADD_ACPM_LOG
 	snprintf(date_time + len, size - len, ", rtc: %u", date_time,
 			nfc_logger_acpm_get_rtc_time());
-#endif
 }
+#else
+void nfc_logger_get_date_time(char *date_time, int size)
+{
+	struct timespec64 ts;
+	struct tm tm;
+	unsigned long sec;
+
+	ktime_get_real_ts64(&ts);
+	sec = ts.tv_sec - (sys_tz.tz_minuteswest * 60);
+	time64_to_tm(sec, 0, &tm);
+	snprintf(date_time, size, "%02d-%02d %02d:%02d:%02d.%03lu", tm.tm_mon + 1, tm.tm_mday,
+				tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec / 1000000);
+
+}
+#endif
 
 void nfc_logger_print(char *fmt, ...)
 {
