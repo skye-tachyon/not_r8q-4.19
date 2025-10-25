@@ -23,12 +23,6 @@ config ANDROID_VSOC
 	  a 'cuttlefish' Android image inside QEmu. The driver interacts with
 	  a QEmu ivshmem device. If built as a module, it will be called vsoc.
 
-config SAMSUNG_LMKD_DEBUG
-	bool "record lmkd kill history"
-	default y
-	help
-	  record lmkd kill history
-
 config SAMSUNG_FREECESS
 	bool "thraw frozen process when recv sig"
 	default n
