@@ -60,13 +60,13 @@ struct sec_nfc_platform_data {
 	int irq;
 	int clk_irq;
 	int ven;
-	int firm;
-	int wake;
+	int firm_and_wake;
 	int pvdd;
 	unsigned int tvdd;
 	unsigned int avdd;
 	bool clk_req_wake;
 	bool irq_all_trigger;
+	bool eint_mode;
 #ifdef CONFIG_ESE_COLDRESET
   unsigned int coldreset;
 #endif
@@ -83,7 +83,7 @@ struct sec_nfc_platform_data {
 	u32 npt_gpio_flags;
 /*[END] NPT*/
 	struct regulator *nfc_pvdd;
-	int bootloader_ver; /* used for nfc test */
+	const char *nfc_ic_type; /* used for nfc test */
 	int i2c_switch; /*i2c swicth on_off gpio*/
 };
 
@@ -134,9 +134,6 @@ enum sec_nfc_coldreset{
 /*[END] COLDRESET*/
 #endif
 
-#if IS_ENABLED(CONFIG_BATTERY_SAMSUNG) && !defined(CONFIG_NFC_PVDD_LATE_ENABLE)
-extern unsigned int lpcharge;
-#endif
 #define NFC_I2C_LDO_ON  1
 #define NFC_I2C_LDO_OFF 0
 
