@@ -80,9 +80,10 @@
 		pn547,firm-gpio = <&tlmm 9 0>;
 		pn547,clk_req-gpio = <&tlmm 100 0>;
 		pn547,pwr_req =  <&tlmm 8 0>;
-		pn547,nfc_pvdd-supply = <&pm8150a_l1>;
+		nfc_pvdd-supply = <&pm8150a_l1>;
 		pn547,ldo_control;
 		pn547,clk_req_wake;
+		pn547,ap_vendor = "qct";
 /*		pn547,nfc_pm_clk; */ /* don't need to control bbclk3 by driver code, if MGPI is enabled */
 /*		clocks = <&clock_rpmh RPMH_LN_BB_CLK3>; */
 /*		clock-names = "rf_clk"; */
