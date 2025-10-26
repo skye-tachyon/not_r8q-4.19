@@ -2766,6 +2766,7 @@ void stm_ts_release(struct stm_ts_data *ts)
 int stm_ts_probe(struct stm_ts_data *ts)
 {
 	int ret = 0;
+	int lcdtype = 0;
 #if IS_MODULE(CONFIG_TOUCHSCREEN_STM) || IS_MODULE(CONFIG_TOUCHSCREEN_STM_SPI)
 	static int deferred_flag = 0;
 
@@ -2777,6 +2778,14 @@ int stm_ts_probe(struct stm_ts_data *ts)
 #endif
 
 	input_info(true, &ts->client->dev, "%s\n", __func__);
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	lcdtype = get_lcd_attached("GET");
+	if (lcdtype == 0xFFFFFF || (lcdtype != 0x805080 && lcdtype != 0x805081)) {
+		input_err(true, &ts->client->dev, "%s: lcd is not attached %X\n", __func__, lcdtype);
+		return -ENODEV;
+	}
+#endif
 
 	ret = stm_ts_init(ts);
 	if (ret < 0) {
