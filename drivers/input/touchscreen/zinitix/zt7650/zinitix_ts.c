@@ -9196,6 +9196,14 @@ static int zt_ts_probe(struct i2c_client *client,
 
 	input_info(true, &client->dev, "%s: start probe\n", __func__);
 
+#ifdef CONFIG_BATTERY_SAMSUNG
+	if (lpcharge == 1) {
+		input_err(true, &client->dev, "%s : Do not load driver due to : lpm %d\n",
+				__func__, lpcharge);
+		return -ENODEV;
+	}
+#endif
+
 #ifdef CONFIG_DISPLAY_SAMSUNG
 	lcdtype = get_lcd_attached("GET");
 	if (lcdtype == 0xFFFFFF || (((lcdtype >> 8) != 0x8000) && ((lcdtype >> 8) != 0x8040))) {

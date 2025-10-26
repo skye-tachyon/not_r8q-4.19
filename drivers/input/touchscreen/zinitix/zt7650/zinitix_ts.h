@@ -52,6 +52,10 @@
 
 #include "../../../sec_input_v2/sec_input.h"
 
+#ifdef CONFIG_BATTERY_SAMSUNG
+extern unsigned int lpcharge;
+#endif
+
 #ifdef CONFIG_DISPLAY_SAMSUNG
 extern int get_lcd_attached(char *mode);
 #endif
