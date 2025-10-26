@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "sec_input.h"
-#include "sec_tsp_log.h"
+#include <linux/input/sec_input_v2/sec_input.h>
+#include <linux/input/sec_input_v2/sec_tsp_log.h>
 
 static int sec_tsp_log_index;
 static int sec_tsp_log_index_fix;

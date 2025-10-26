@@ -35,7 +35,7 @@
 #endif
 
 #if IS_ENABLED(CONFIG_INPUT_SEC_SECURE_TOUCH)
-#include "../sec_secure_touch.h"
+#include <linux/input/sec_input_v2/sec_secure_touch.h>
 #include <linux/atomic.h>
 #include <linux/clk.h>
 #include <linux/pm_runtime.h>
@@ -127,13 +127,13 @@ struct trusted_touch_vm_info {
 #include <linux/vbus_notifier.h>
 #endif
 
-#include "../sec_tclm_v2.h"
+#include <linux/input/sec_input_v2/sec_tclm_v2.h>
 #if IS_ENABLED(CONFIG_INPUT_TOUCHSCREEN_TCLMV2)
 #define TCLM_CONCEPT
 #endif
 
 #if IS_ENABLED(CONFIG_TOUCHSCREEN_DUMP_MODE)
-#include "../sec_tsp_dumpkey.h"
+#include <linux/input/sec_input_v2/sec_tsp_dumpkey.h>
 extern struct tsp_dump_callbacks dump_callbacks;
 #endif
 
@@ -141,8 +141,8 @@ extern struct tsp_dump_callbacks dump_callbacks;
 #include <linux/hall/hall_ic_notifier.h>
 #endif
 
-#include "../sec_input.h"
-#include "../sec_tsp_log.h"
+#include <linux/input/sec_input_v2/sec_input.h>
+#include <linux/input/sec_input_v2/sec_tsp_log.h>
 
 #ifndef I2C_M_DMA_SAFE
 #define I2C_M_DMA_SAFE		0

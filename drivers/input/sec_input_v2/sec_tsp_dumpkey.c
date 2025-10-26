@@ -15,8 +15,8 @@
 #include <linux/spinlock.h>
 #include <linux/list_sort.h>
 
-#include "sec_input.h"
-#include "sec_tsp_dumpkey.h"
+#include <linux/input/sec_input_v2/sec_input.h>
+#include <linux/input/sec_input_v2/sec_tsp_dumpkey.h>
 
 static DEFINE_SPINLOCK(sec_tsp_dumpkey_event_lock);
 static atomic_t sec_tsp_dumpkey_acceptable_event[KEY_MAX] __read_mostly;

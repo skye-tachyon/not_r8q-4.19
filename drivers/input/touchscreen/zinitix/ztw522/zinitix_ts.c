@@ -45,8 +45,8 @@
 extern struct class *sec_class;
 #endif
 
-#include <linux/input/sec_cmd.h>
-#include <linux/input/sec_tclm_v2.h>
+#include <linux/input/sec_input/sec_cmd.h>
+#include <linux/input/sec_input/sec_tclm_v2.h>
 #include <linux/of_gpio.h>
 #include <linux/firmware.h>
 #ifdef CONFIG_VBUS_NOTIFIER

@@ -22,7 +22,7 @@
 
 
 #ifdef CONFIG_SEC_DEBUG_TSP_LOG
-#include <linux/input/sec_tsp_log.h>
+#include <linux/input/sec_input/sec_tsp_log.h>
 
 static int sec_tsp_log_index;
 static int sec_tsp_log_index_fix;

@@ -15,7 +15,7 @@
 #include <linux/notifier.h>
 #include <linux/spinlock.h>
 #include <linux/list_sort.h>
-#include <linux/input/sec_tsp_dumpkey.h>
+#include <linux/input/sec_input/sec_tsp_dumpkey.h>
 
 #include "../../samsung/debug/sec_key_notifier.h"
 

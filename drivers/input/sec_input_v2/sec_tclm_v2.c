@@ -10,9 +10,10 @@
  */
 
 #include <linux/input.h>
-#include "sec_input.h"
-#include "sec_tclm_v2.h"
-#include "sec_tsp_log.h"
+
+#include <linux/input/sec_input_v2/sec_input.h>
+#include <linux/input/sec_input_v2/sec_tclm_v2.h>
+#include <linux/input/sec_input_v2/sec_tsp_log.h>
 
 struct sec_cal_position sec_cal_positions[CALPOSITION_MAX] = {
 	{CAL_POS_CMD("NONE",	'N'),}, /* 0, NONe */

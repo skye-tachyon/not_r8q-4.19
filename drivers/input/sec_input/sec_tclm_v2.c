@@ -9,7 +9,7 @@
  *
  */
 
-#include <linux/input/sec_tclm_v2.h>
+#include <linux/input/sec_input/sec_tclm_v2.h>
 #include <linux/input.h>
 
 struct sec_cal_position sec_cal_positions[CALPOSITION_MAX] = {

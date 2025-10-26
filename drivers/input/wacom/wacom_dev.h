@@ -14,9 +14,9 @@
 #include <linux/spu-verify.h>
 #include "wacom_reg.h"
 #if IS_ENABLED(CONFIG_INPUT_SEC_INPUT_V2)
-#include "../sec_input_v2/sec_input.h"
+#include <linux/input/sec_input_v2/sec_input.h>
 #else 
-#include <linux/input/sec_cmd.h>
+#include <linux/input/sec_input/sec_cmd.h>
 #endif
 
 #undef CONFIG_USB_TYPEC_MANAGER_NOTIFIER

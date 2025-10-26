@@ -23,7 +23,7 @@
 #define ZT75XX_TS_DEVICE	"zt75xx_ts"
 
 #ifdef CONFIG_INPUT_SEC_SECURE_TOUCH
-#include <linux/input/sec_secure_touch.h>
+#include <linux/input/sec_input/sec_secure_touch.h>
 #endif
 
 #ifdef CONFIG_INPUT_TOUCHSCREEN_TCLMV2

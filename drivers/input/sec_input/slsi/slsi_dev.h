@@ -22,7 +22,7 @@
 #include <linux/i2c.h>
 #include <linux/input.h>
 #include <linux/input/mt.h>
-#include <linux/input/sec_cmd.h>
+#include <linux/input/sec_input/sec_cmd.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/irq.h>
@@ -47,7 +47,7 @@
 #endif
 
 #ifdef CONFIG_INPUT_SEC_SECURE_TOUCH
-#include <linux/input/sec_secure_touch.h>
+#include <linux/input/sec_input/sec_secure_touch.h>
 #include <linux/atomic.h>
 #include <linux/clk.h>
 #include <linux/pm_runtime.h>
@@ -57,18 +57,18 @@
 #define SECURE_TOUCH_DISABLE	0
 #endif
 
-#include <linux/input/sec_tclm_v2.h>
+#include <linux/input/sec_input/sec_tclm_v2.h>
 #ifdef CONFIG_INPUT_TOUCHSCREEN_TCLMV2
 #define TCLM_CONCEPT
 #endif
 
 #if defined(CONFIG_TOUCHSCREEN_DUMP_MODE)
-#include <linux/input/sec_tsp_dumpkey.h>
+#include <linux/input/sec_input/sec_tsp_dumpkey.h>
 extern struct tsp_dump_callbacks dump_callbacks;
 static struct delayed_work *p_ghost_check;
 #endif
 
-#include "../sec_input.h"
+#include <linux/input/sec_input/sec_input.h>
 
 #define SEC_TS_I2C_NAME		"sec_ts"
 #define SEC_TS_DEVICE_NAME	"SEC_TS"

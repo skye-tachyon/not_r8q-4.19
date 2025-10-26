@@ -8936,7 +8936,7 @@ static void zt_run_rawdata(struct zt_ts_info *info)
 }
 
 #if IS_ENABLED(CONFIG_TOUCHSCREEN_DUMP_MODE)
-#include "../../../sec_input_v2/sec_tsp_dumpkey.h"
+#include <linux/input/sec_input_v2/sec_tsp_dumpkey.h>
 extern struct tsp_dump_callbacks dump_callbacks;
 static struct delayed_work *p_ghost_check;
 

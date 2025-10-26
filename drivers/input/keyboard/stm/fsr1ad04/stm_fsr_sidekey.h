@@ -29,7 +29,7 @@
 #endif
 
 #include <linux/device.h>
-#include <linux/input/sec_cmd.h>
+#include <linux/input/sec_input/sec_cmd.h>
 #include <linux/proc_fs.h>
 #include <linux/power_supply.h>
 

@@ -13,7 +13,7 @@ struct sec_secure_touch *g_ss_touch;
 
 #undef SEC_SECURE_TOUCH_NEXT_PLAN
 
-#include <linux/input/sec_secure_touch.h>
+#include <linux/input/sec_input/sec_secure_touch.h>
 #include <linux/notifier.h>
 
 int sec_secure_touch_set_device(struct sec_secure_touch *data, int dev_num);

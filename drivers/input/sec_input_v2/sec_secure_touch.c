@@ -11,9 +11,9 @@
 
 struct sec_secure_touch *g_ss_touch;
 
-#include "sec_secure_touch.h"
+#include <linux/input/sec_input_v2/sec_secure_touch.h>
 #include <linux/notifier.h>
-#include "sec_input.h"
+#include <linux/input/sec_input_v2/sec_input.h>
 
 int sec_secure_touch_set_device(struct sec_secure_touch *data, int dev_num);
 void sec_secure_touch_sysfs_notify(struct sec_secure_touch *data);

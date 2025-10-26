@@ -9,7 +9,7 @@
  *
  */
 
-#include <linux/input/sec_cmd.h>
+#include <linux/input/sec_input/sec_cmd.h>
 
 struct class *tsp_sec_class;
 

@@ -29,9 +29,9 @@ Copyright (C) 2020, Samsung Electronics. All rights reserved.
 #include <linux/preempt.h>
 #include <linux/sec_param.h>
 #if IS_ENABLED(CONFIG_INPUT_SEC_INPUT_V2)
-#include "../../../../drivers/input/sec_input_v2/sec_input.h"
+#include <linux/input/sec_input_v2/sec_input.h>
 #else
-#include <linux/input/sec_cmd.h>
+#include <linux/input/sec_input/sec_cmd.h>
 #endif
 
 static void ss_panel_recovery(struct samsung_display_driver_data *vdd);

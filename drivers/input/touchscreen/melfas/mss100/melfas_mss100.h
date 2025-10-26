@@ -63,12 +63,12 @@
 #include <linux/sec_debug.h>
 #endif
 #ifdef CONFIG_TOUCHSCREEN_DUMP_MODE
-#include <linux/input/sec_tsp_dumpkey.h>
+#include <linux/input/sec_input/sec_tsp_dumpkey.h>
 extern struct tsp_dump_callbacks dump_callbacks;
 static struct delayed_work *p_ghost_check;
 #endif
 
-#include <linux/input/sec_cmd.h>
+#include <linux/input/sec_input/sec_cmd.h>
 
 #ifdef CONFIG_SAMSUNG_TUI
 #include <linux/input/stui_inf.h>

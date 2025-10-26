@@ -2,7 +2,7 @@
 #define _LINUX_FTS_TS_H_
 
 #include <linux/device.h>
-#include <linux/input/sec_cmd.h>
+#include <linux/input/sec_input/sec_cmd.h>
 #include <linux/wakelock.h>
 #include <linux/vmalloc.h>
 #include <linux/proc_fs.h>
@@ -27,7 +27,7 @@
 #endif
 
 #ifdef CONFIG_INPUT_SEC_SECURE_TOUCH
-#include <linux/input/sec_secure_touch.h>
+#include <linux/input/sec_input/sec_secure_touch.h>
 #endif
 
 #define FTS_SUPPORT_SPONGELIB
@@ -35,7 +35,7 @@
 #define SEC_TSP_FACTORY_TEST
 #define CONFIG_GLOVE_TOUCH
 
-#include <linux/input/sec_tclm_v2.h>
+#include <linux/input/sec_input/sec_tclm_v2.h>
 #ifdef CONFIG_INPUT_TOUCHSCREEN_TCLMV2
 #define TCLM_CONCEPT
 #endif

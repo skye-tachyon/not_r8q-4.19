@@ -26,7 +26,7 @@
 #include <linux/atomic.h>
 #include <linux/pm_runtime.h>
 #include <linux/clk.h>
-#include <../sec_secure_touch.h>
+#include <linux/input/sec_input_v2/sec_secure_touch.h>
 
 #define SECURE_TOUCH_ENABLED	1
 #define SECURE_TOUCH_DISABLED	0

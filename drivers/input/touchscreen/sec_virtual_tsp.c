@@ -1,5 +1,5 @@
 
-#include <linux/input/sec_cmd.h>
+#include <linux/input/sec_input/sec_cmd.h>
 
 #if defined(CONFIG_FOLDER_HALL)
 #include <linux/hall.h>

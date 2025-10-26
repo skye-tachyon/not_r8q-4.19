@@ -1,7 +1,7 @@
 
-#include "sec_cmd.h"
-#include "sec_input.h"
-#include "sec_tsp_log.h"
+#include <linux/input/sec_input_v2/sec_cmd.h>
+#include <linux/input/sec_input_v2/sec_input.h>
+#include <linux/input/sec_input_v2/sec_tsp_log.h>
 
 #if IS_ENABLED(CONFIG_HALL_NOTIFIER)
 #include <linux/hall/hall_ic_notifier.h>
@@ -19,7 +19,7 @@ static int fac_flip_status;
 static struct sec_cmd_data *dual_sec;
 
 #if IS_ENABLED(CONFIG_TOUCHSCREEN_DUMP_MODE)
-#include "sec_tsp_dumpkey.h"
+#include <linux/input/sec_input_v2/sec_tsp_dumpkey.h>
 extern struct tsp_dump_callbacks dump_callbacks;
 struct tsp_dump_callbacks *tsp_callbacks;
 EXPORT_SYMBOL(tsp_callbacks);

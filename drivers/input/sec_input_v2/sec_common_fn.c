@@ -9,7 +9,7 @@
  *
  */
 
-#include "sec_input.h"
+#include <linux/input/sec_input_v2/sec_input.h>
 
 #if !IS_ENABLED(CONFIG_SEC_KUNIT)
 #define __visible_for_testing static

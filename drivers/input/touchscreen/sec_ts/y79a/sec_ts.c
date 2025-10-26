@@ -759,7 +759,7 @@ static void sec_ts_set_prox_power_off(struct sec_ts_data *ts, u8 data)
 }
 
 #if defined(CONFIG_TOUCHSCREEN_DUMP_MODE)
-#include <linux/input/sec_tsp_dumpkey.h>
+#include <linux/input/sec_input/sec_tsp_dumpkey.h>
 extern struct tsp_dump_callbacks dump_callbacks;
 static struct delayed_work *p_ghost_check;
 

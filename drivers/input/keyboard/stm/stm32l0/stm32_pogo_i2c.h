@@ -36,7 +36,7 @@
 #endif
 #include <linux/input/pogo_i2c_notifier.h>
 #if IS_ENABLED(CONFIG_INPUT_SEC_INPUT_V2)
-#include "../../../sec_input_v2/sec_input.h"
+#include <linux/input/sec_input_v2/sec_input.h>
 #endif
 
 /* Utility MACROs */

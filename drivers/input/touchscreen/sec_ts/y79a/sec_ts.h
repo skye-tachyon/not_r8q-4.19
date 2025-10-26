@@ -23,7 +23,7 @@
 #include <linux/i2c.h>
 #include <linux/input.h>
 #include <linux/input/mt.h>
-#include <linux/input/sec_cmd.h>
+#include <linux/input/sec_input/sec_cmd.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/irq.h>
@@ -48,7 +48,7 @@
 #endif
 
 #ifdef CONFIG_INPUT_SEC_SECURE_TOUCH
-#include <linux/input/sec_secure_touch.h>
+#include <linux/input/sec_input/sec_secure_touch.h>
 #include <linux/atomic.h>
 #include <linux/clk.h>
 #include <linux/pm_runtime.h>
@@ -68,7 +68,7 @@
 #undef USER_OPEN_DWORK
 #define MINORITY_REPORT
 
-#include <linux/input/sec_tclm_v2.h>
+#include <linux/input/sec_input/sec_tclm_v2.h>
 #ifdef CONFIG_INPUT_TOUCHSCREEN_TCLMV2
 #define TCLM_CONCEPT
 #endif
