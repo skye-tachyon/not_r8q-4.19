@@ -26,8 +26,8 @@
 #include <linux/cpuidle.h>
 #endif
 #if IS_ENABLED(CONFIG_VBUS_NOTIFIER)
-#include <linux/muic/common/muic.h>
-#include <linux/muic/common/muic_notifier.h>
+#include <linux/muic/muic.h>
+#include <linux/muic/muic_notifier.h>
 #endif
 #if IS_ENABLED(CONFIG_INPUT_SEC_SECURE_TOUCH)
 #include <linux/completion.h>
@@ -42,7 +42,7 @@
 #include <linux/input/stui_inf.h>
 #endif
 #if IS_ENABLED(CONFIG_INPUT_SEC_SECURE_TOUCH)
-#include "../../../sec_input/sec_secure_touch.h"
+#include <linux/input/sec_input_v2/sec_secure_touch.h>
 #endif
 
 //#define SPU_FW_SIGNED
@@ -50,7 +50,7 @@
 #include <linux/spu-verify.h>
 #endif
 
-#include "../../../sec_input/sec_input.h"
+#include <linux/input/sec_input_v2/sec_input.h>
 
 #ifdef CONFIG_BATTERY_SAMSUNG
 extern unsigned int lpcharge;
@@ -74,7 +74,7 @@ extern int get_lcd_attached(char *mode);
 #endif
 
 #if IS_ENABLED(CONFIG_INPUT_TOUCHSCREEN_TCLMV2)
-#include "../../../sec_input/sec_tclm_v2.h"
+#include <linux/input/sec_input_v2/sec_tclm_v2.h>
 #define TCLM_CONCEPT
 #endif
 
