@@ -824,5 +824,9 @@ void stm_ts_trusted_touch_tvm_i2c_failure_report(struct stm_ts_data *ts);
 #endif
 #endif
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+extern int get_lcd_attached(char *mode);
+#endif
+
 #endif /* _LINUX_stm_ts_H_ */
 
