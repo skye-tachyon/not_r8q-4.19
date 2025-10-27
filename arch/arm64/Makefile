@@ -58,6 +58,10 @@ KBUILD_AFLAGS	+= $(lseinstr) $(brokengasinst) $(compat_vdso)
 KBUILD_CFLAGS	+= $(call cc-option,-mabi=lp64)
 KBUILD_AFLAGS	+= $(call cc-option,-mabi=lp64)
 
+KBUILD_CFLAGS   += -mcpu=cortex-a55+crypto+crc+dotprod+rcpc
+KBUILD_AFLAGS   += -mcpu=cortex-a55+crypto+crc+dotprod+rcpc
+KBUILD_LDFLAGS  += -mllvm -mcpu=cortex-a55
+
 ifeq ($(CONFIG_SHADOW_CALL_STACK), y)
 KBUILD_CFLAGS	+= -ffixed-x18
 endif
