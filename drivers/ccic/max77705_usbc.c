@@ -3685,7 +3685,9 @@ void max77705_clk_booster_init(void)
 void max77705_clk_booster_set(void *data, int on)
 {
 	struct max77705_usbc_platform_data *usbpd_data = data;
+#ifdef CONFIG_CPUFREQ_LIMIT
 	int res = 0;
+#endif
 	int index = 0;
 
 	if (system_state < SYSTEM_RUNNING) {
@@ -3696,8 +3698,10 @@ void max77705_clk_booster_set(void *data, int on)
 	cancel_delayed_work_sync(&usbpd_data->acc_booster_off_work);
 	if (on) {
 		usbpd_data->set_booster = true;
+#ifdef CONFIG_CPUFREQ_LIMIT
 		// cpu freq
 		res = set_freq_limit(DVFS_BOOST_HOST_ID, MAX_FREQ);
+#endif
 		// hmp booster on
 		sched_set_boost(1);
 		// ddr freq
@@ -3721,12 +3725,15 @@ void max77705_clk_booster_off(struct work_struct *wk)
 	struct delayed_work *delay_work =
 		container_of(wk, struct delayed_work, work);
 	struct max77705_usbc_platform_data *usbpd_data =
-		container_of(delay_work, struct max77705_usbc_platform_data, acc_booster_off_work);		
+		container_of(delay_work, struct max77705_usbc_platform_data, acc_booster_off_work);	
+#ifdef CONFIG_CPUFREQ_LIMIT	
 	int res = 0;
-
+#endif
 	pr_info("[PDIC Booster] %s+  \n", __func__);
+#ifdef CONFIG_CPUFREQ_LIMIT
 	// cpu freq
 	res = set_freq_limit(DVFS_BOOST_HOST_ID, -1);
+#endif
 	// hmp booster off
 	sched_set_boost(0);
 	// ddr freq
