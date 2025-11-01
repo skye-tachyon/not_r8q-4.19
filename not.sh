@@ -111,7 +111,7 @@ echo "*****************************************"
 # Build Device Tree Blob//Overlay
 
 # **FIX:** Removed the invisible non-breaking spaces before the 'CC=' line
-make -j12 O="$OUT_DIR" $KERNEL_MAKE_ENV $HOST_BUILD_ENV \
+make -j$(nproc) O="$OUT_DIR" $KERNEL_MAKE_ENV $HOST_BUILD_ENV \
     CC="${LLVM_PATH}clang --target=aarch64-linux-gnu" dtbo.img
 
 cp $HOME/bomb/out/arch/arm64/boot/dtbo.img "$ANYKERNEL_DIR/dtbo.img"
