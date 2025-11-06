@@ -2,18 +2,18 @@
 #include <linux/fs.h>
 #include <linux/kobject.h>
 #include <linux/module.h>
+#include <generated/utsrelease.h>
+#include <generated/compile.h>
+#include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION macros */
 #include <linux/workqueue.h>
 
 #include "allowlist.h"
 #include "arch.h"
 #include "core_hook.h"
+#include "feature.h"
 #include "klog.h" // IWYU pragma: keep
 #include "ksu.h"
 #include "throne_tracker.h"
-
-#ifdef CONFIG_KSU_SUSFS
-#include <linux/susfs.h>
-#endif
 
 static struct workqueue_struct *ksu_workqueue;
 
@@ -36,13 +36,17 @@ int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 					    flags);
 }
 
-extern void ksu_sucompat_init();
-extern void ksu_sucompat_exit();
-extern void ksu_ksud_init();
-extern void ksu_ksud_exit();
+extern void ksu_sucompat_init(void);
+extern void ksu_sucompat_exit(void);
+extern void ksu_ksud_init(void);
+extern void ksu_ksud_exit(void);
+extern void ksu_supercalls_init(void);
 
-int __init ksu_kernelsu_init(void)
+int __init kernelsu_init(void)
 {
+	pr_info("Initialized on: %s (%s) with driver version: %u\n",
+		UTS_RELEASE, UTS_MACHINE, KSU_VERSION);
+
 #ifdef CONFIG_KSU_DEBUG
 	pr_alert("*************************************************************");
 	pr_alert("**     NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE    **");
@@ -53,9 +57,9 @@ int __init ksu_kernelsu_init(void)
 	pr_alert("*************************************************************");
 #endif
 
-#ifdef CONFIG_KSU_SUSFS
-	susfs_init();
-#endif
+	ksu_feature_init();
+
+	ksu_supercalls_init();
 
 	ksu_core_init();
 
@@ -65,11 +69,10 @@ int __init ksu_kernelsu_init(void)
 
 	ksu_throne_tracker_init();
 
-#ifdef CONFIG_KSU_KPROBES_HOOK
 	ksu_sucompat_init();
+
+#ifdef KSU_KPROBE_HOOK
 	ksu_ksud_init();
-#else
-	pr_alert("KPROBES is disabled, KernelSU may not work, please check https://kernelsu.org/guide/how-to-integrate-for-non-gki.html");
 #endif
 
 #ifdef MODULE
@@ -80,26 +83,36 @@ int __init ksu_kernelsu_init(void)
 	return 0;
 }
 
-void ksu_kernelsu_exit(void)
+void kernelsu_exit(void)
 {
 	ksu_allowlist_exit();
 
 	ksu_throne_tracker_exit();
 
+	ksu_observer_exit();
+
 	destroy_workqueue(ksu_workqueue);
 
-#ifdef CONFIG_KSU_KPROBES_HOOK
+#ifdef KSU_KPROBE_HOOK
 	ksu_ksud_exit();
-	ksu_sucompat_exit();
 #endif
+	ksu_sucompat_exit();
 
 	ksu_core_exit();
+	ksu_feature_exit();
 }
 
-module_init(ksu_kernelsu_init);
-module_exit(ksu_kernelsu_exit);
+module_init(kernelsu_init);
+module_exit(kernelsu_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("weishu");
 MODULE_DESCRIPTION("Android KernelSU");
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
+MODULE_IMPORT_NS("VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver");
+#else
 MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+#endif
+#endif
