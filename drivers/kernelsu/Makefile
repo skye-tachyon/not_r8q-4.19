@@ -10,6 +10,7 @@ kernelsu-objs += feature.o
 kernelsu-objs += ksud.o
 kernelsu-objs += embed_ksud.o
 kernelsu-objs += kernel_compat.o
+kernelsu-objs += file_wrapper.o
 
 kernelsu-objs += selinux/selinux.o
 kernelsu-objs += selinux/sepolicy.o
@@ -29,17 +30,31 @@ $(info -- KDIR: $(KDIR))
 $(info -- MDIR: $(MDIR))
 endif
 
-REPO_NAME := Uma-muSUme
+# Check if this is a git repository
+# For in-tree build: check $(srctree)/$(src)/../.git
+# For out-of-tree build: check $(MDIR)/../.git
+ifeq ($(shell test -e $(srctree)/$(src)/../.git && echo "in-tree"),in-tree)
+# In-tree build (git submodule)
+$(shell cd $(srctree)/$(src); /usr/bin/env PATH="$$PATH":/usr/bin:/usr/local/bin [ -f ../.git/shallow ] && git fetch --unshallow)
+KSU_GIT_VERSION := $(shell cd $(srctree)/$(src); /usr/bin/env PATH="$$PATH":/usr/bin:/usr/local/bin git rev-list --count HEAD)
+KSU_GIT_VERSION_VALID := 1
+else ifeq ($(shell test -e $(MDIR)/../.git && echo "out-of-tree"),out-of-tree)
+# Out-of-tree build (standalone repository)
+$(shell cd $(MDIR); /usr/bin/env PATH="$$PATH":/usr/bin:/usr/local/bin [ -f ../.git/shallow ] && git fetch --unshallow)
+KSU_GIT_VERSION := $(shell cd $(MDIR); /usr/bin/env PATH="$$PATH":/usr/bin:/usr/local/bin git rev-list --count HEAD)
+KSU_GIT_VERSION_VALID := 1
+endif
 
-KSU_VERSION := 22144
-KSU_VERSION_API := 3.2.8
-KSU_VERSION_FULL := v$(KSU_VERSION_API)-$(REPO_NAME)-skye@tachyon
-
-$(info -- KrenlolSU-Next version: $(KSU_VERSION))
-$(info -- KrenlolSU-Next FULL version: $(KSU_VERSION_FULL))
-
+# Calculate version if git version is available
+ifdef KSU_GIT_VERSION_VALID
+$(eval KSU_VERSION=$(shell expr 20000 + $(KSU_GIT_VERSION)))
+$(info -- KernelSU version: $(KSU_VERSION))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
-ccflags-y += -DKSU_VERSION_FULL=\"$(KSU_VERSION_FULL)\"
+else
+# If there is no .git directory, use default version
+$(warning "KSU_GIT_VERSION not defined! It is better to make KernelSU a git repository!")
+ccflags-y += -DKSU_VERSION=16
+endif
 
 # Checks hooks state
 ifeq ($(CONFIG_KSU_MANUAL_HOOK), y)
@@ -94,6 +109,7 @@ endif
 
 ifdef KSU_MANAGER_PACKAGE
 ccflags-y += -DKSU_MANAGER_PACKAGE=\"$(KSU_MANAGER_PACKAGE)\"
+$(info -- KernelSU Manager package name: $(KSU_MANAGER_PACKAGE))
 endif
 
 $(info -- Supported KernelSU Manager(s): tiann, rsuntk, 5ec1cff) 

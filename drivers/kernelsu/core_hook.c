@@ -40,9 +40,7 @@
 #include "kernel_compat.h"
 #include "supercalls.h"
 
-bool ksu_module_mounted = false;
-
-extern int handle_sepolicy(unsigned long arg3, void __user *arg4);
+bool ksu_module_mounted __read_mostly = false;
 
 static bool ksu_kernel_umount_enabled = true;
 
@@ -425,7 +423,8 @@ int ksu_handle_setuid(struct cred *new, const struct cred *old)
 		spin_unlock_irq(&current->sighand->siglock);
 
 		if (ksu_get_manager_uid() == new_uid.val) {
-			pr_info("install fd for ksu manager(uid=%d)\n", new_uid.val);
+			pr_info("install fd for ksu manager(uid=%d)\n",
+				new_uid.val);
 			ksu_install_fd();
 		}
 
@@ -521,8 +520,8 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
 
 // -- For old kernel compat?
 #if !defined(MODULE) && !defined(KSU_KPROBE_HOOK)
-static int ksu_task_fix_setuid(struct cred *new,
-					      const struct cred *old, int flags)
+static int ksu_task_fix_setuid(struct cred *new, const struct cred *old,
+			       int flags)
 {
 	return ksu_handle_setuid(new, old);
 }
