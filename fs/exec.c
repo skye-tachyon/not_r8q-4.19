@@ -79,7 +79,7 @@ static DEFINE_RWLOCK(binfmt_lock);
 
 #define SURFACEFLINGER_BIN "/system/bin/surfaceflinger"
 #define SYSTEMUI_BIN "/system/system_ext/SystemUI/SystemUI.apk"
-#define ONEUIHOME_BIN "/system/priv-app/OneUIHome/OneUIHome.apk"
+#define ONEUIHOME_BIN "/system/priv-app/TouchWizHome_2017/TouchWizHome_2017.apk"
 #define ZYGOTE32_BIN "/system/bin/app_process32"
 #define ZYGOTE64_BIN "/system/bin/app_process64"
 static struct signal_struct *zygote32_sig;
