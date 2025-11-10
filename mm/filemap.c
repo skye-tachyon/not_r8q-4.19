@@ -2553,7 +2553,7 @@ static int lock_page_maybe_drop_mmap(struct vm_fault *vmf, struct page *page,
 }
 
 #if CONFIG_MMAP_READAROUND_LIMIT == 0
-int mmap_readaround_limit = (VM_MAX_READAHEAD / 4); 		/* page */
+int mmap_readaround_limit = VM_READAHEAD_PAGES;
 #else
 int mmap_readaround_limit = CONFIG_MMAP_READAROUND_LIMIT;	/* page */
 #endif
