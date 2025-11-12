@@ -191,8 +191,6 @@ static int __init mm_sysfs_init(void)
 	if (!mm_kobj)
 		return -ENOMEM;
 
-	printk(KERN_INFO "le9 Unofficial (le9uo) working set protection 1.8 by Masahito Suzuki (forked from hakavlad's original le9 patch)");
-
 	return 0;
 }
 postcore_initcall(mm_sysfs_init);
