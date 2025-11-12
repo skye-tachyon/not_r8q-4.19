@@ -508,7 +508,7 @@ static const struct file_operations dma_buf_fops = {
 	.poll		= dma_buf_poll,
 	.unlocked_ioctl	= dma_buf_ioctl,
 #ifdef CONFIG_COMPAT
-	.compat_ioctl	= dma_buf_ioctl,
+	.compat_ioctl	= compat_ptr_ioctl,
 #endif
 	.show_fdinfo	= dma_buf_show_fdinfo,
 };

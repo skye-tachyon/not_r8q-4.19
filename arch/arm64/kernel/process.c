@@ -262,7 +262,7 @@ static void __show_data(unsigned long addr, int nbytes, const char *name, unsign
 
 			if (page_address && page_address != (page_mask & (uintptr_t)p))
 				pr_cont(" ????????");
-			else if (probe_kernel_address(p, data))
+			else if (get_kernel_nofault(data, p))
 				pr_cont(" ********");
 			else
 				pr_cont(" %08x", data);
