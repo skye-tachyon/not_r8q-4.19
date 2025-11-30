@@ -331,28 +331,17 @@ static int vbus_handle_notification(struct notifier_block *nb,
 
 static int otg_accessory_power(bool enable)
 {
-	struct power_supply *psy_otg, *psy_battery;
+	struct power_supply *psy_otg;
 	union power_supply_propval val;
 	int on = !!enable;
-	int current_cable_type;
 	int ret = 0;
 	pr_info("%s %d, enable=%d\n", __func__, __LINE__, enable);
 	/* otg psy test */
 	psy_otg = get_power_supply_by_name("otg");
-	psy_battery = get_power_supply_by_name("battery");
-
 
 	if (psy_otg) {
 		val.intval = enable;
 		ret = psy_otg->desc->set_property(psy_otg, POWER_SUPPLY_PROP_ONLINE, &val);
-	} else if (psy_battery) {
-		if (enable)
-			current_cable_type = POWER_SUPPLY_TYPE_OTG;
-		else
-			current_cable_type = POWER_SUPPLY_TYPE_BATTERY;
-
-		val.intval = current_cable_type;
-		ret = psy_battery->desc->set_property(psy_battery, POWER_SUPPLY_PROP_ONLINE, &val);
 	} else {
 		pr_err("%s: Fail to get psy battery\n", __func__);
 		return -1;

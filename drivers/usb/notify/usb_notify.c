@@ -736,7 +736,7 @@ int do_notify_blockstate(struct otg_notify *n, unsigned long event,
 			if (check_time_secure_restrict_cond(u_notify, event))
 				send_usb_restrict_uevent(USB_TIME_SECURE_RESTRICTED);
 		}
-#endif		
+#endif
 		if (enable)
 			if (n->set_chg_current)
 				n->set_chg_current(NOTIFY_USB_CONFIGURED);
@@ -1983,7 +1983,7 @@ static void otg_notify_state(struct otg_notify *n,
 #ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
 			if (!virtual)
 				u_notify->allowlist_restricted = 0;
-#endif	
+#endif
 			if (n->is_host_wakelock)
 				__pm_relax(u_notify->ws);
 		}

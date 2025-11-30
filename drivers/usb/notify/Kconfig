@@ -14,7 +14,7 @@ config USB_HOST_NOTIFY
 	 The uevent include host connect, disconnect, source, sink.
 
 config USB_NOTIFY_LAYER
-	tristate "USB notify layer"
+	bool "USB notify layer"
 	depends on USB
 	help
 	 Added usb notify layer on gadget,host,otg drivers.

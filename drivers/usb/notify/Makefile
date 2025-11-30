@@ -1,7 +1,5 @@
 
 # usb notify driver
-
-subdir-ccflags-y := -Wformat
 obj-$(CONFIG_USB_NOTIFY_LAYER)			+= usb_notify_layer.o
 usb_notify_layer-y				:= usb_notify.o  usb_notify_sysfs.o dock_notify.o
 usb_notify_layer-$(CONFIG_USB_HOST_NOTIFY)			+= host_notify_class.o

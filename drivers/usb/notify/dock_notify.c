@@ -342,7 +342,6 @@ static void connect_usb_driver(struct usb_device *dev)
 
 	for (i = 0; i < dev->actconfig->desc.bNumInterfaces; i++) {
 		intf = dev->actconfig->interface[i];
-
 		if (!intf->dev.driver) {
 			ret = device_attach(&intf->dev);
 			if (ret < 0)
