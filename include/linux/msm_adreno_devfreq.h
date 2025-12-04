@@ -32,6 +32,7 @@ struct xstats {
 	u64 ram_time;
 	u64 ram_wait;
 	int mod;
+	int buslevel;
 };
 
 struct devfreq_msm_adreno_tz_data {

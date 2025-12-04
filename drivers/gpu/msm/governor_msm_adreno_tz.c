@@ -5,6 +5,7 @@
 #include <linux/errno.h>
 #include <linux/module.h>
 #include <linux/devfreq.h>
+#include <linux/dma-mapping.h>
 #include <linux/math64.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
@@ -16,7 +17,7 @@
 #include <soc/qcom/scm.h>
 #include <soc/qcom/qtee_shmbridge.h>
 #include <linux/of_platform.h>
-#include "governor.h"
+#include "../../devfreq/governor.h"
 
 static DEFINE_SPINLOCK(tz_lock);
 static DEFINE_SPINLOCK(sample_lock);
