@@ -181,7 +181,7 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync, bool rt
 		 * only running task.
 		 */
 		if ((sync && cpu == this_cpu && rq->nr_running == 1) ||
-		    available_idle_cpu(cpu)) { // || sched_idle_cpu(cpu)) {
+		    available_idle_cpu(cpu) || sched_idle_cpu(cpu)) {
 			/*
 			 * A non-idle candidate may be better when @p is uclamp
 			 * boosted. Otherwise, always prefer idle candidates.
@@ -291,13 +291,13 @@ static int cass_select_task_rq(struct task_struct *p, int prev_cpu,
 }
 
 static int cass_select_task_rq_fair(struct task_struct *p, int prev_cpu,
-				    int sd_flag, int wake_flags)
+				    int sd_flag, int wake_flags, int sibling_count_hint)
 {
 	return cass_select_task_rq(p, prev_cpu, wake_flags, false);
 }
 
 int cass_select_task_rq_rt(struct task_struct *p, int prev_cpu,
- 			   int sd_flag, int wake_flags)
+ 			   int sd_flag, int wake_flags, int sibling_count_hint)
 {
 	return cass_select_task_rq(p, prev_cpu, wake_flags, true);
 }
