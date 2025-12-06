@@ -4948,7 +4948,7 @@ static void set_delayed(struct sched_entity *se)
 
 	/*
 	 * Delayed se of cfs_rq have no tasks queued on them.
-	 * Do not adjust h_nr_runnable since dequeue_entities()
+	 * Do not adjust h_nr_running since dequeue_entities()
 	 * will account it for blocked tasks.
 	 */
 	if (!entity_is_task(se))
@@ -4969,7 +4969,7 @@ static void clear_delayed(struct sched_entity *se)
 
 	/*
 	 * Delayed se of cfs_rq have no tasks queued on them.
-	 * Do not adjust h_nr_runnable since a dequeue has
+	 * Do not adjust h_nr_running since a dequeue has
 	 * already accounted for it or an enqueue of a task
 	 * below it will account for it in enqueue_task_fair().
 	 */
@@ -4996,6 +4996,10 @@ static bool
 dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 {
 	bool sleep = flags & DEQUEUE_SLEEP;
+	int action = UPDATE_TG;
+	
+	if (entity_is_task(se) && task_on_rq_migrating(task_of(se)))
+		action |= DO_DETACH;
 
 	update_curr(cfs_rq);
 	clear_buddies(cfs_rq, se);
@@ -6227,8 +6231,6 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	int idle_h_nr_running = task_has_idle_policy(p);
 	int h_nr_delayed = 0;
 	int task_new = !(flags & ENQUEUE_WAKEUP);
-	bool prefer_idle = sched_feat(EAS_PREFER_IDLE) ?
-				(schedtune_prefer_idle(p) > 0) : 0;
 	u64 slice = 0;
 
 	/*
@@ -6471,15 +6473,6 @@ static bool dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 }
 
 #ifdef CONFIG_SMP
-
-/* CPU only has SCHED_IDLE tasks enqueued */
-static int sched_idle_cpu(int cpu)
-{
-	struct rq *rq = cpu_rq(cpu);
-
-	return unlikely(rq->nr_running == rq->cfs.idle_h_nr_running &&
-			rq->nr_running);
-}
 
 /* Working cpumask for: load_balance, load_balance_newidle. */
 DEFINE_PER_CPU(cpumask_var_t, load_balance_mask);
@@ -8421,7 +8414,6 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 			      cpumask_test_cpu(cpu, &p->cpus_allowed);
 	}
 
-sd_loop:
 	rcu_read_lock();
 	for_each_domain(cpu, tmp) {
 		/*
@@ -10163,10 +10155,6 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 
 		if (cpu_overutilized(i))
 			*sg_status |= SG_OVERUTILIZED;
-
-			if (rq->misfit_task_load)
-				*sg_status |= SG_HAS_MISFIT_TASK;
-		}
 
 #ifdef CONFIG_NUMA_BALANCING
 		sgs->nr_numa_running += rq->nr_numa_running;
