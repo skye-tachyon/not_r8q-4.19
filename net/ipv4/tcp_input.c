@@ -5269,6 +5269,7 @@ static bool tcp_prune_ofo_queue(struct sock *sk)
 static int tcp_prune_queue(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
+	struct net *net = sock_net(sk)
 
 	SOCK_DEBUG(sk, "prune_queue: c=%x\n", tp->copied_seq);
 
@@ -5293,6 +5294,39 @@ static int tcp_prune_queue(struct sock *sk)
 	if (atomic_read(&sk->sk_rmem_alloc) <= sk->sk_rcvbuf)
 		return 0;
 
+	/* For context and additional information about this patch, see the
+	 * blog post at
+	 *
+	 * sysctl:  net.ipv4.tcp_collapse_max_bytes
+	 *
+	 * If tcp_collapse_max_bytes is non-zero, attempt to collapse the
+	 * queue to free up memory if the current amount of memory allocated
+	 * is less than tcp_collapse_max_bytes.  Otherwise, the packet is
+	 * dropped without attempting to collapse the queue.
+	 *
+	 * If tcp_collapse_max_bytes is zero, this feature is disabled
+	 * and the default Linux behavior is used.  The default Linux
+	 * behavior is to always perform the attempt to collapse the
+	 * queue to free up memory.
+	 *
+	 * When the receive queue is small, we want to collapse the
+	 * queue.  There are two reasons for this: (a) the latency of
+	 * performing the collapse will be small on a small queue, and
+	 * (b) we want to avoid sending a congestion signal (via a
+	 * packet drop) to the sender when the receive queue is small.
+	 *
+	 * The result is that we avoid latency spikes caused by the
+	 * time it takes to perform the collapse logic when the receive
+	 * queue is large and full, while preserving existing behavior
+	 * and performance for all other cases.
+	 */
+	if (net->ipv4.sysctl_tcp_collapse_max_bytes &&
+		(atomic_read(&sk->sk_rmem_alloc) > net->ipv4.sysctl_tcp_collapse_max_bytes)) {
+		/* We are dropping the packet */
+		trace_tcp_collapse_max_bytes_exceeded(sk);
+		goto do_not_collapse;
+	}
+
 	/* Collapsing did not help, destructive actions follow.
 	 * This must not ever occur. */
 
@@ -5301,6 +5335,7 @@ static int tcp_prune_queue(struct sock *sk)
 	if (atomic_read(&sk->sk_rmem_alloc) <= sk->sk_rcvbuf)
 		return 0;
 
+do_not_collapse:
 	/* If we are really being abused, tell the caller to silently
 	 * drop receive data on the floor.  It will get retransmitted
 	 * and hopefully then we'll have sufficient space.
