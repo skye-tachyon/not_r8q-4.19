@@ -121,11 +121,7 @@ static inline struct schedtune *css_st(struct cgroup_subsys_state *css)
 
 static inline struct schedtune *task_schedtune(struct task_struct *tsk)
 {
-#ifdef CONFIG_SCHED_TUNE
 	return css_st(task_css(tsk, schedtune_cgrp_id));
-#else
-	return NULL;
-#endif
 }
 
 static inline struct schedtune *parent_st(struct schedtune *st)
@@ -503,7 +499,6 @@ boost_read(struct cgroup_subsys_state *css, struct cftype *cft)
 
 static void schedtune_attach(struct cgroup_taskset *tset)
 {
-#ifdef CONFIG_SCHED_TUNE
 	struct task_struct *task;
 	struct cgroup_subsys_state *css;
 	struct boost_groups *bg;
@@ -585,7 +580,6 @@ static void schedtune_attach(struct cgroup_taskset *tset)
 		raw_spin_unlock(&bg->lock);
 		task_rq_unlock(rq, task, &rq_flags);
 	}
-#endif
 }
 
 static int
