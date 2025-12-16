@@ -1951,7 +1951,7 @@
 			<&clock_gcc GCC_UFS_1X_CLKREF_EN>,
 			<&clock_gcc GCC_UFS_PHY_AHB_CLK>,
 			<&clock_gcc GCC_UFS_PHY_ICE_CORE_CLK>;
-		qcom,op-freq-hz = <0>, <0>, <0>, <300000000>;
+		qcom,op-freq-hz = <0>, <0>, <0>, <333333333>;
 		vdd-hba-supply = <&ufs_phy_gdsc>;
 		qcom,msm-bus,name = "ufs_ice_noc";
 		qcom,msm-bus,num-cases = <2>;
@@ -2011,11 +2011,11 @@
 			<&clock_gcc GCC_UFS_PHY_RX_SYMBOL_0_CLK>,
 			<&clock_gcc GCC_UFS_PHY_RX_SYMBOL_1_CLK>;
 		freq-table-hz =
-			<37500000 300000000>,
+			<37500000 333333333>,
 			<0 0>,
 			<0 0>,
-			<37500000 300000000>,
-			<37500000 300000000>,
+			<37500000 333333333>,
+			<37500000 333333333>,
 			<0 0>,
 			<0 0>,
 			<0 0>,
