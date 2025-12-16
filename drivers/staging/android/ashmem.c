@@ -10,7 +10,6 @@
 #include <linux/miscdevice.h>
 #include <linux/mman.h>
 #include <linux/shmem_fs.h>
-#include <linux/module.h>
 #include "ashmem.h"
 
 /**
@@ -352,5 +351,3 @@ out:
 	return ret;
 }
 device_initcall(ashmem_init);
-
-MODULE_LICENSE("GPL v2");
