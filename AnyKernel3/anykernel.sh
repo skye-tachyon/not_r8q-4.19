@@ -13,11 +13,11 @@ do.cleanuponabort=0
 device.name1=r8q
 device.name2=r8qxx
 device.name3=r8qxxx
-device.name4=mustang
-supported.versions=11 - 18
+device.name4=
+device.name5=
+supported.versions=
 supported.patchlevels=
 '; } # end properties
-# i use pixel 10 pro xl spoof in my r8q, thats why mustang is there, no-one will flash a 4.19 kernel on p10pxl anyway
 
 # shell variables
 block=/dev/block/platform/soc/1d84000.ufshc/by-name/boot;
@@ -36,7 +36,20 @@ set_perm_recursive 0 0 750 750 $ramdisk/init* $ramdisk/sbin;
 ## AnyKernel boot install
 dump_boot;
 
-# begin kernel/dtb/dtbo changes
+case "$ZIPFILE" in
+   *-eff*)
+    ui_print " "
+    ui_print " • Using efficient cpu frequency table! • "
+    mv $home/kona-eff.dtb $home/dtb
+    ;;
+   *)
+    ui_print " "
+    ui_print " • Using custom cpu frequency table! • "
+    mv $home/kona.dtb $home/dtb
+    ;;
+esac
+
+# begin cmdline changes
 oneui=$(file_getprop /system/build.prop ro.build.version.oneui);
 gsi=$(file_getprop /system/build.prop ro.product.system.device);
 cos=$(file_getprop /system/build.prop ro.product.system.brand);
@@ -84,6 +97,7 @@ dd if=$home/vbmeta.img of=/dev/block/platform/soc/1d84000.ufshc/by-name/vbmeta
 
 ui_print " "
 ui_print " • Patching dtbo unconditionally... • "
+ui_print " "
 
 write_boot;
 ## end boot install
