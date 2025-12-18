@@ -263,4 +263,6 @@ source "drivers/gator/Kconfig"
 
 source "drivers/spu_verify/Kconfig"
 
+source "drivers/dts_eagle/Kconfig"
+
 endmenu

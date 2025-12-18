@@ -198,7 +198,7 @@ CPU_LE( rev	data2, data2 )
 	* as carry-propagation can corrupt the upper bits if the trailing
 	* bytes in the string contain 0x01.
 	* However, if there is no NUL byte in the dword, we can generate
-	* the result directly.  We ca not just subtract the bytes as the
+	* the result directly.  We cannot just subtract the bytes as the
 	* MSB might be significant.
 	*/
 CPU_BE( cbnz	has_nul, 1f )
@@ -232,3 +232,4 @@ CPU_BE(	orr	syndrome, diff, has_nul )
 	sub	result, data1, data2, lsr #56
 	ret
 ENDPIPROC(strcmp)
+EXPORT_SYMBOL_NOKASAN(strcmp)
