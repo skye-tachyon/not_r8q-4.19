@@ -144,10 +144,7 @@ extern void __mutex_init(struct mutex *lock, const char *name,
  *
  * Returns true if the mutex is locked, false if unlocked.
  */
-static inline bool mutex_is_locked(struct mutex *lock)
-{
-	return __mutex_owner(lock) != NULL;
-}
+extern bool mutex_is_locked(struct mutex *lock);
 
 /*
  * See kernel/locking/mutex.c for detailed documentation of these APIs.
@@ -220,13 +217,7 @@ enum mutex_trylock_recursive_enum {
  *  - MUTEX_TRYLOCK_SUCCESS   - lock acquired,
  *  - MUTEX_TRYLOCK_RECURSIVE - we already owned the lock.
  */
-static inline /* __deprecated */ __must_check enum mutex_trylock_recursive_enum
-mutex_trylock_recursive(struct mutex *lock)
-{
-	if (unlikely(__mutex_owner(lock) == current))
-		return MUTEX_TRYLOCK_RECURSIVE;
-
-	return mutex_trylock(lock);
-}
+extern /* __deprecated */ __must_check enum mutex_trylock_recursive_enum
+mutex_trylock_recursive(struct mutex *lock);
 
 #endif /* __LINUX_MUTEX_H */
