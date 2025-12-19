@@ -1,7 +1,6 @@
 #
 # Makefile for the linux ramfs routines.
 #
-ccflags-y += -O3
 
 obj-y += ramfs.o
 
