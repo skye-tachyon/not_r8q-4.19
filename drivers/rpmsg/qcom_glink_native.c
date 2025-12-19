@@ -2137,18 +2137,20 @@ struct qcom_glink *qcom_glink_native_probe(struct device *dev,
 
 	glink->irq = irq;
 
-	size = of_property_count_u32_elems(dev->of_node, "cpu-affinity");
-	if (size > 0) {
-		arr = kmalloc_array(size, sizeof(u32), GFP_KERNEL);
-		if (!arr) {
-			ret = -ENOMEM;
-			goto unregister;
+	if (!IS_ENABLED(CONFIG_IRQ_SBALANCE)) {
+		size = of_property_count_u32_elems(dev->of_node, "cpu-affinity");
+		if (size > 0) {
+			arr = kmalloc_array(size, sizeof(u32), GFP_KERNEL);
+			if (!arr) {
+				ret = -ENOMEM;
+				goto unregister;
+			}
+			ret = of_property_read_u32_array(dev->of_node, "cpu-affinity",
+							 arr, size);
+			if (!ret)
+				qcom_glink_set_affinity(glink, arr, size);
+			kfree(arr);
 		}
-		ret = of_property_read_u32_array(dev->of_node, "cpu-affinity",
-						 arr, size);
-		if (!ret)
-			qcom_glink_set_affinity(glink, arr, size);
-		kfree(arr);
 	}
 
 	ret = qcom_glink_send_version(glink);

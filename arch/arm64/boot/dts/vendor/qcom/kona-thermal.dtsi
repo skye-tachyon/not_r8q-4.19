@@ -776,7 +776,7 @@
 		wake-capable-sensor;
 		trips {
 			cpu00_config: cpu00-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -798,7 +798,7 @@
 		wake-capable-sensor;
 		trips {
 			cpu01_config: cpu01-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -820,7 +820,7 @@
 		wake-capable-sensor;
 		trips {
 			cpu02_config: cpu02-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -842,7 +842,7 @@
 		wake-capable-sensor;
 		trips {
 			cpu03_config: cpu03-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -864,13 +864,13 @@
 		wake-capable-sensor;
 		trips {
 			cpufreq_10_config: cpufreq-10-config {
-				temperature = <45000>;
+				temperature = <75000>;
 				hysteresis = <5000>;
 				type = "passive";
 			};
 
 			cpu10_config: cpu10-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -897,13 +897,13 @@
 		wake-capable-sensor;
 		trips {
 			cpufreq_11_config: cpufreq-11-config {
-				temperature = <45000>;
+				temperature = <75000>;
 				hysteresis = <5000>;
 				type = "passive";
 			};
 
 			cpu11_config: cpu11-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -930,13 +930,13 @@
 		wake-capable-sensor;
 		trips {
 			cpufreq_12_config: cpufreq-12-config {
-				temperature = <45000>;
+				temperature = <75000>;
 				hysteresis = <5000>;
 				type = "passive";
 			};
 
 			cpu12_config: cpu12-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -963,13 +963,13 @@
 		wake-capable-sensor;
 		trips {
 			cpufreq_13_config: cpufreq-13-config {
-				temperature = <45000>;
+				temperature = <75000>;
 				hysteresis = <5000>;
 				type = "passive";
 			};
 
 			cpu13_config: cpu13-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -996,13 +996,13 @@
 		wake-capable-sensor;
 		trips {
 			cpufreq_14_config: cpufreq-14-config {
-				temperature = <45000>;
+				temperature = <75000>;
 				hysteresis = <5000>;
 				type = "passive";
 			};
 
 			cpu14_config: cpu14-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -1029,13 +1029,13 @@
 		wake-capable-sensor;
 		trips {
 			cpufreq_15_config: cpufreq-15-config {
-				temperature = <45000>;
+				temperature = <75000>;
 				hysteresis = <5000>;
 				type = "passive";
 			};
 
 			cpu15_config: cpu15-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -1062,13 +1062,13 @@
 		wake-capable-sensor;
 		trips {
 			cpufreq_16_config: cpufreq-16-config {
-				temperature = <45000>;
+				temperature = <75000>;
 				hysteresis = <5000>;
 				type = "passive";
 			};
 
 			cpu16_config: cpu16-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};
@@ -1095,13 +1095,13 @@
 		wake-capable-sensor;
 		trips {
 			cpufreq_17_config: cpufreq-17-config {
-				temperature = <45000>;
+				temperature = <75000>;
 				hysteresis = <5000>;
 				type = "passive";
 			};
 
 			cpu17_config: cpu17-config {
-				temperature = <62500>;
+				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
 			};

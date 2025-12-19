@@ -457,6 +457,7 @@ static int cnss_fw_ready_hdlr(struct cnss_plat_data *plat_priv)
 	if (!plat_priv)
 		return -ENODEV;
 
+	cnss_pr_dbg("Processing FW Init Done..\n");
 	del_timer(&plat_priv->fw_boot_timer);
 	set_bit(CNSS_FW_READY, &plat_priv->driver_state);
 	clear_bit(CNSS_DEV_ERR_NOTIFY, &plat_priv->driver_state);
@@ -471,7 +472,7 @@ static int cnss_fw_ready_hdlr(struct cnss_plat_data *plat_priv)
 	if (test_bit(ENABLE_WALTEST, &plat_priv->ctrl_params.quirks)) {
 		ret = cnss_wlfw_wlan_mode_send_sync(plat_priv,
 						    CNSS_WALTEST);
-	} else if (test_bit(CNSS_COLD_BOOT_CAL, &plat_priv->driver_state)) {
+	} else if (test_bit(CNSS_IN_COLD_BOOT_CAL, &plat_priv->driver_state)) {
 		cnss_request_antenna_sharing(plat_priv);
 		ret = cnss_wlfw_wlan_mode_send_sync(plat_priv,
 						    CNSS_CALIBRATION);
@@ -970,6 +971,7 @@ static void cnss_unregister_esoc(struct cnss_plat_data *plat_priv)
 static int cnss_subsys_powerup(const struct subsys_desc *subsys_desc)
 {
 	struct cnss_plat_data *plat_priv;
+	int ret = 0;
 
 	if (!subsys_desc->dev) {
 		cnss_pr_err("dev from subsys_desc is NULL\n");
@@ -987,7 +989,10 @@ static int cnss_subsys_powerup(const struct subsys_desc *subsys_desc)
 		return 0;
 	}
 
-	return cnss_bus_dev_powerup(plat_priv);
+	ret = cnss_bus_dev_powerup(plat_priv);
+	if (ret)
+		__pm_relax(plat_priv->recovery_ws);
+	return ret;
 }
 
 static int cnss_subsys_shutdown(const struct subsys_desc *subsys_desc,
@@ -1077,7 +1082,11 @@ static void cnss_recovery_work_handler(struct work_struct *work)
 	cnss_bus_dev_shutdown(plat_priv);
 	cnss_bus_dev_ramdump(plat_priv);
 	msleep(RECOVERY_DELAY_MS);
-	cnss_bus_dev_powerup(plat_priv);
+
+	ret = cnss_bus_dev_powerup(plat_priv);
+	if (ret)
+		__pm_relax(plat_priv->recovery_ws);
+	return;
 }
 
 void cnss_device_crashed(struct device *dev)
@@ -1137,6 +1146,14 @@ static int cnss_do_recovery(struct cnss_plat_data *plat_priv,
 		return 0;
 	}
 
+	/* FW recovery sequence has multiple steps and firmware load requires
+	 * linux PM in awake state. Thus hold the cnss wake source until
+	 * WLAN MISSION enabled.
+	 */
+	pm_wakeup_ws_event(plat_priv->recovery_ws, RECOVERY_TIMEOUT +
+			   cnss_get_boot_timeout(NULL),
+			   true);
+
 	switch (reason) {
 	case CNSS_REASON_LINK_DOWN:
 		if (!cnss_bus_check_link_status(plat_priv)) {
@@ -1166,7 +1183,6 @@ static int cnss_do_recovery(struct cnss_plat_data *plat_priv,
 			    cnss_recovery_reason_to_str(reason), reason);
 		break;
 	}
-
 	cnss_bus_device_crashed(plat_priv);
 
 	return 0;
@@ -1461,19 +1477,30 @@ static int cnss_cold_boot_cal_start_hdlr(struct cnss_plat_data *plat_priv)
 {
 	int ret = 0;
 
-	if (test_bit(CNSS_FW_READY, &plat_priv->driver_state) ||
-	    test_bit(CNSS_DRIVER_LOADING, &plat_priv->driver_state) ||
-	    test_bit(CNSS_DRIVER_PROBED, &plat_priv->driver_state)) {
-		cnss_pr_dbg("Device is already active, ignore calibration\n");
+	if (test_bit(CNSS_COLD_BOOT_CAL_DONE, &plat_priv->driver_state)) {
+		cnss_pr_dbg("Calibration complete. Ignore calibration req\n");
 		goto out;
 	}
 
-	set_bit(CNSS_COLD_BOOT_CAL, &plat_priv->driver_state);
+	if (test_bit(CNSS_DRIVER_LOADING, &plat_priv->driver_state) ||
+	    test_bit(CNSS_DRIVER_PROBED, &plat_priv->driver_state) ||
+	    test_bit(CNSS_FW_READY, &plat_priv->driver_state)) {
+		cnss_pr_err("WLAN in mission mode before cold boot calibration\n");
+		CNSS_ASSERT(0);
+		return -EINVAL;
+	}
+
+	set_bit(CNSS_IN_COLD_BOOT_CAL, &plat_priv->driver_state);
 	reinit_completion(&plat_priv->cal_complete);
 	ret = cnss_bus_dev_powerup(plat_priv);
 	if (ret) {
 		complete(&plat_priv->cal_complete);
-		clear_bit(CNSS_COLD_BOOT_CAL, &plat_priv->driver_state);
+		clear_bit(CNSS_IN_COLD_BOOT_CAL, &plat_priv->driver_state);
+		/* Set CBC done in driver state to mark attempt and note error
+		 * since calibration cannot be retried at boot.
+		 */
+		plat_priv->cal_done = CNSS_CAL_FAILURE;
+		set_bit(CNSS_COLD_BOOT_CAL_DONE, &plat_priv->driver_state);
 	}
 
 out:
@@ -1485,7 +1512,7 @@ static int cnss_cold_boot_cal_done_hdlr(struct cnss_plat_data *plat_priv,
 {
 	struct cnss_cal_info *cal_info = data;
 
-	if (!test_bit(CNSS_COLD_BOOT_CAL, &plat_priv->driver_state))
+	if (!test_bit(CNSS_IN_COLD_BOOT_CAL, &plat_priv->driver_state))
 		goto out;
 
 	switch (cal_info->cal_status) {
@@ -1494,7 +1521,9 @@ static int cnss_cold_boot_cal_done_hdlr(struct cnss_plat_data *plat_priv,
 		plat_priv->cal_done = true;
 		break;
 	case CNSS_CAL_TIMEOUT:
-		cnss_pr_dbg("Calibration timed out, force shutdown\n");
+	case CNSS_CAL_FAILURE:
+		cnss_pr_dbg("Calibration failed. Status: %d, force shutdown\n",
+			    cal_info->cal_status);
 		break;
 	default:
 		cnss_pr_err("Unknown calibration status: %u\n",
@@ -1508,7 +1537,8 @@ static int cnss_cold_boot_cal_done_hdlr(struct cnss_plat_data *plat_priv,
 	cnss_bus_dev_shutdown(plat_priv);
 	msleep(COLD_BOOT_CAL_SHUTDOWN_DELAY_MS);
 	complete(&plat_priv->cal_complete);
-	clear_bit(CNSS_COLD_BOOT_CAL, &plat_priv->driver_state);
+	clear_bit(CNSS_IN_COLD_BOOT_CAL, &plat_priv->driver_state);
+	set_bit(CNSS_COLD_BOOT_CAL_DONE, &plat_priv->driver_state);
 
 out:
 	kfree(data);
@@ -2444,7 +2474,7 @@ static ssize_t fs_ready_store(struct device *dev,
 		return count;
 	}
 
-	if (fs_ready == FILE_SYSTEM_READY) {
+	if (fs_ready == FILE_SYSTEM_READY && plat_priv->cbc_enabled) {
 		cnss_driver_event_post(plat_priv,
 				       CNSS_DRIVER_EVENT_COLD_BOOT_CAL_START,
 				       0, NULL);
@@ -2827,6 +2857,11 @@ static int cnss_misc_init(struct cnss_plat_data *plat_priv)
 	init_completion(&plat_priv->recovery_complete);
 	mutex_init(&plat_priv->dev_lock);
 	mutex_init(&plat_priv->driver_ops_lock);
+	plat_priv->recovery_ws =
+		wakeup_source_register(&plat_priv->plat_dev->dev,
+				       "CNSS_FW_RECOVERY");
+	if (!plat_priv->recovery_ws)
+		cnss_pr_err("Failed to setup FW recovery wake source\n");
 
 	return 0;
 }
@@ -2841,6 +2876,7 @@ static void cnss_misc_deinit(struct cnss_plat_data *plat_priv)
 	unregister_reboot_notifier(&plat_priv->reboot_nb);
 	unregister_pm_notifier(&cnss_pm_notifier);
 	del_timer(&plat_priv->fw_boot_timer);
+	wakeup_source_unregister(plat_priv->recovery_ws);
 }
 
 static void cnss_init_control_params(struct cnss_plat_data *plat_priv)
@@ -2850,11 +2886,24 @@ static void cnss_init_control_params(struct cnss_plat_data *plat_priv)
 				  "cnss-daemon-support"))
 		plat_priv->ctrl_params.quirks |= BIT(ENABLE_DAEMON_SUPPORT);
 
+	plat_priv->cbc_enabled =
+		of_property_read_bool(plat_priv->plat_dev->dev.of_node,
+				      "qcom,wlan-cbc-enabled");
 	plat_priv->ctrl_params.mhi_timeout = CNSS_MHI_TIMEOUT_DEFAULT;
 	plat_priv->ctrl_params.mhi_m2_timeout = CNSS_MHI_M2_TIMEOUT_DEFAULT;
 	plat_priv->ctrl_params.qmi_timeout = CNSS_QMI_TIMEOUT_DEFAULT;
 	plat_priv->ctrl_params.bdf_type = CNSS_BDF_TYPE_DEFAULT;
 	plat_priv->ctrl_params.time_sync_period = CNSS_TIME_SYNC_PERIOD_DEFAULT;
+}
+
+static void cnss_get_pm_domain_info(struct cnss_plat_data *plat_priv)
+{
+	struct device *dev = &plat_priv->plat_dev->dev;
+
+	plat_priv->use_pm_domain =
+		of_property_read_bool(dev->of_node, "use-pm-domain");
+
+	cnss_pr_dbg("use-pm-domain is %d\n", plat_priv->use_pm_domain);
 }
 
 static void cnss_get_wlaon_pwr_ctrl_info(struct cnss_plat_data *plat_priv)
@@ -2956,6 +3005,7 @@ static int cnss_probe(struct platform_device *plat_dev)
 	INIT_LIST_HEAD(&plat_priv->vreg_list);
 	INIT_LIST_HEAD(&plat_priv->clk_list);
 
+	cnss_get_pm_domain_info(plat_priv);
 	cnss_get_wlaon_pwr_ctrl_info(plat_priv);
 	cnss_get_cpr_info(plat_priv);
 	cnss_init_control_params(plat_priv);

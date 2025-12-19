@@ -2713,9 +2713,6 @@ static int do_sysinfo(struct sysinfo *info)
 	si_meminfo(info);
 	si_swapinfo(info);
 
-	/* FAKE: pretend we have 8gb of ram to the system*/
-	info->totalram = 7837958400 / info->mem_unit;
-
 	/*
 	 * If the sum of all the available memory (i.e. ram + swap)
 	 * is less than can be stored in a 32 bit unsigned long then
