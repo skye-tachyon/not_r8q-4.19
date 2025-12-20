@@ -5902,8 +5902,6 @@ static bool shrink_node(pg_data_t *pgdat, struct scan_control *sc)
 	unsigned long nr_reclaimed, nr_scanned;
 	bool reclaimable = false;
 
-	prepare_workingset_protection(pgdat, sc);
-
 	do {
 		struct mem_cgroup *root = sc->target_mem_cgroup;
 		struct mem_cgroup_reclaim_cookie reclaim = {
@@ -5917,6 +5915,8 @@ static bool shrink_node(pg_data_t *pgdat, struct scan_control *sc)
 
 		nr_reclaimed = sc->nr_reclaimed;
 		nr_scanned = sc->nr_scanned;
+
+		prepare_workingset_protection(pgdat, sc);
 
 		memcg = mem_cgroup_iter(root, NULL, &reclaim);
 		do {
