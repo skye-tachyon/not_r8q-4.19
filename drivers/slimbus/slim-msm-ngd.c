@@ -31,7 +31,7 @@
 
 #define NGD_SLIM_NAME	"ngd_msm_ctrl"
 #define SLIM_LA_MGR	0xFF
-#define SLIM_ROOT_FREQ	24576000
+#define SLIM_ROOT_FREQ	25200000
 #define LADDR_RETRY	5
 
 #define NGD_BASE_V1(r)	(((r) % 2) ? 0x800 : 0xA00)

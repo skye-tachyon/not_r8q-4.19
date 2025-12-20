@@ -1,8 +1,6 @@
 #!/bin/bash
 LLVM_PATH="/home/skye/toolchains/neutron-clang/bin/"
 
-KERNEL_NAME="Aviva"
-
 HOST_BUILD_ENV="ARCH=arm64 \
                 CC=${LLVM_PATH}clang \
                 CROSS_COMPILE=${LLVM_PATH}aarch64-linux-gnu- \
@@ -55,6 +53,6 @@ gitsha=$(git rev-parse --short HEAD)
 cd "$ANYKERNEL_DIR" || exit 1
 rm -f *.zip
 
-zip -r9 "not-${KERNEL_NAME}-$gitsha+r8q.zip" .
+zip -r9 "not-$gitsha+r8q.zip" .
 
 echo "The bomb has been planted."

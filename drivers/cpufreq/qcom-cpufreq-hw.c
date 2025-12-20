@@ -18,7 +18,6 @@
 #include <linux/cpu_cooling.h>
 
 #include <linux/sec_debug.h>
-#include <linux/sec_smem.h>
 #include <trace/events/power.h>
 
 #define CREATE_TRACE_POINTS

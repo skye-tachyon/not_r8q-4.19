@@ -7,7 +7,6 @@
 #
 
 ccflags-y += -Wno-frame-larger-than
-subdir-ccflags-y += -Os
 
 obj-y :=	open.o read_write.o file_table.o super.o \
 		char_dev.o stat.o exec.o pipe.o namei.o fcntl.o \

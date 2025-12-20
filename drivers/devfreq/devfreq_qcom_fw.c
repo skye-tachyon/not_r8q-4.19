@@ -19,7 +19,6 @@
 #include <linux/pm_opp.h>
 
 #include <linux/sec_debug.h>
-#include <linux/sec_smem.h>
 
 #define INIT_HZ				300000000UL
 #define XO_HZ				19200000UL
@@ -78,7 +77,6 @@ static int devfreq_qcom_fw_target(struct device *dev, unsigned long *freq,
 			index = max(index, v->index);
 		perf_base = pd->perf_base;
 	}
-	sec_smem_clk_osm_add_log_l3(p->freq_table[index] / 1000);
 	writel_relaxed(index, perf_base);
 	spin_unlock_irqrestore(&voter_lock, lflags);
 

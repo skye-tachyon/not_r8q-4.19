@@ -26,7 +26,6 @@
 
 #include <soc/qcom/socinfo.h>
 
-#include <linux/sec_smem.h>
 #include <linux/sec_class.h>
 #include <linux/sec_debug.h>
 
@@ -471,27 +470,6 @@ static ssize_t show_ddr_info(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	ssize_t info_size = 0;
-	uint32_t ch, cs, dq;
-
-	default_scnprintf(buf, info_size, "\"DDRV\":\"%s\",",
-			get_ddr_vendor_name());
-	default_scnprintf(buf, info_size, "\"DSF\":\"%d.%d\",",
-			(get_ddr_DSF_version() >> 16) & 0xFFFF,
-			get_ddr_DSF_version() & 0xFFFF);
-
-	for_each_ch_cs_dq(ch, NUM_CH, cs, NUM_CS, dq, NUM_DQ_PCH) {
-		default_scnprintf(buf, info_size, "\"RW_%d_%d_%d\":\"%d\",",
-				ch, cs, dq, get_ddr_rcw_tDQSCK(ch, cs, dq));
-		default_scnprintf(buf, info_size, "\"WC_%d_%d_%d\":\"%d\",",
-				ch, cs, dq, get_ddr_wr_coarseCDC(ch, cs, dq));
-		default_scnprintf(buf, info_size, "\"WF_%d_%d_%d\":\"%d\",",
-				ch, cs, dq, get_ddr_wr_fineCDC(ch, cs, dq));
-	}
-
-	/* remove the last ',' character */
-	info_size--;
-
-	check_format(buf, &info_size, DEFAULT_LEN_STR);
 
 	return info_size;
 }
@@ -506,21 +484,6 @@ static ssize_t eye_rd_info_show(struct device *dev,
 {
         ssize_t info_size = 0;
 
-        default_scnprintf(buf, info_size, "\"DDRV\":\"%s\",",
-                        get_ddr_vendor_name());
-        default_scnprintf(buf, info_size, "\"DSF\":\"%d.%d\",",
-                        (get_ddr_DSF_version() >> 16) & 0xFFFF,
-                        get_ddr_DSF_version() & 0xFFFF);
-
-        default_scnprintf(buf, info_size, "\"REV1\":\"%02x\",", get_ddr_revision_id_1());
-        default_scnprintf(buf, info_size, "\"REV2\":\"%02x\",", get_ddr_revision_id_2());
-        default_scnprintf(buf, info_size, "\"SIZE\":\"%02x\",", get_ddr_total_density());
-
-        /* remove the last ',' character */
-        info_size--;
-
-        check_format(buf, &info_size, DEFAULT_LEN_STR);
-
         return info_size;
 }
 static DEVICE_ATTR(eye_rd_info, 0440, eye_rd_info_show, NULL);
@@ -529,46 +492,6 @@ static ssize_t eye_rd_info_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	ssize_t info_size = 0;
-	uint32_t ch, cs, dq;
-
-	default_scnprintf(buf, info_size, "\"DDRV\":\"%s\",",
-			get_ddr_vendor_name());
-	default_scnprintf(buf, info_size, "\"DSF\":\"%d.%d\",",
-			(get_ddr_DSF_version() >> 16) & 0xFFFF,
-			get_ddr_DSF_version() & 0xFFFF);
-
-	default_scnprintf(buf, info_size, "\"REV1\":\"%02x\",", get_ddr_revision_id_1());
-	default_scnprintf(buf, info_size, "\"REV2\":\"%02x\",", get_ddr_revision_id_2());
-	default_scnprintf(buf, info_size, "\"SIZE\":\"%02x\",", get_ddr_total_density());
-
-	default_scnprintf(buf, info_size, "\"CNT\":\"%d\",",
-			ddr_get_small_eye_detected());
-
-	default_scnprintf(buf, info_size, "\"rd_width\":\"R1\",");
-	for_each_ch_cs_dq(ch, NUM_CH, cs, NUM_CS, dq, NUM_DQ_PCH) {
-		default_scnprintf(buf, info_size, "\"RW%d_%d_%d\":\"%d\",",
-				ch, cs, dq,
-				ddr_get_rd_pr_width(ch, cs, dq));
-	}
-
-	default_scnprintf(buf, info_size, "\"rd_height\":\"R2\",");
-	for_each_ch_cs(ch, NUM_CH, cs, NUM_CS) {
-		default_scnprintf(buf, info_size, "\"RH%d_%d_x\":\"%d\",",
-				ch, cs,
-				ddr_get_rd_min_eye_height(ch, cs));
-	}
-
-	default_scnprintf(buf, info_size, "\"rd_vref\":\"Rx\",");
-	for_each_ch_cs_dq(ch, NUM_CH, cs, NUM_CS, dq, NUM_DQ_PCH) {
-		default_scnprintf(buf, info_size, "\"RV%d_%d_%d\":\"%d\",",
-				ch, cs, dq,
-				ddr_get_rd_best_vref(ch, cs, dq));
-	}
-
-	/* remove the last ',' character */
-	info_size--;
-
-	check_format(buf, &info_size, DEFAULT_LEN_STR);
 
 	return info_size;
 }
@@ -578,27 +501,6 @@ static ssize_t eye_dcc_info_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	ssize_t info_size = 0;
-	uint32_t ch, cs, dq;
-
-	default_scnprintf(buf, info_size, "\"dqs_dcc\":\"D3\",");
-	for_each_ch_dq(ch, NUM_CH, dq, NUM_DQ_PCH) {
-		default_scnprintf(buf, info_size, "\"DS%d_x_%d\":\"%d\",",
-				ch, dq,
-				ddr_get_dqs_dcc_adj(ch, dq));
-
-	}
-
-	default_scnprintf(buf, info_size, "\"dq_dcc\":\"D5\",");
-	for_each_ch_cs_dq(ch, NUM_CH, cs, NUM_CS, dq, NUM_DQ_PCH) {
-		default_scnprintf(buf, info_size, "\"DQ%d_%d_%d\":\"%d\",",
-				ch, cs, dq,
-				ddr_get_dq_dcc_abs(ch, cs, dq));
-	}
-
-	/* remove the last ',' character */
-	info_size--;
-
-	check_format(buf, &info_size, DEFAULT_LEN_STR);
 
 	return info_size;
 }
@@ -608,33 +510,6 @@ static ssize_t eye_wr1_info_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	ssize_t info_size = 0;
-	uint32_t ch, cs, dq;
-
-	default_scnprintf(buf, info_size, "\"wr_width\":\"W1\",");
-	for_each_ch_cs_dq(ch, NUM_CH, cs, NUM_CS, dq, NUM_DQ_PCH) {
-		default_scnprintf(buf, info_size, "\"WW%d_%d_%d\":\"%d\",",
-				ch, cs, dq,
-				ddr_get_wr_pr_width(ch, cs, dq));
-	}
-
-	default_scnprintf(buf, info_size, "\"wr_height\":\"W2\",");
-	for_each_ch_cs(ch, NUM_CH, cs, NUM_CS) {
-		default_scnprintf(buf, info_size, "\"WH%d_%d_x\":\"%d\",",
-				ch, cs,
-				ddr_get_wr_min_eye_height(ch, cs));
-	}
-
-	default_scnprintf(buf, info_size, "\"wr_vref\":\"Wx\",");
-	for_each_ch_cs(ch, NUM_CH, cs, NUM_CS) {
-		default_scnprintf(buf, info_size, "\"WV%d_%d_x\":\"%d\",",
-				ch, cs,
-				ddr_get_wr_best_vref(ch, cs));
-	}
-
-	/* remove the last ',' character */
-	info_size--;
-
-	check_format(buf, &info_size, DEFAULT_LEN_STR);
 
 	return info_size;
 }
@@ -644,26 +519,6 @@ static ssize_t eye_wr2_info_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	ssize_t info_size = 0;
-	uint32_t ch, cs, dq;
-
-	default_scnprintf(buf, info_size, "\"wr_topw\":\"W4\",");
-	for_each_ch_cs_dq(ch, NUM_CH, cs, NUM_CS, dq, NUM_DQ_PCH) {
-		default_scnprintf(buf, info_size, "\"WT%d_%d_%d\":\"%d\",",
-				ch, cs, dq,
-				ddr_get_wr_vmax_to_vmid(ch, cs, dq));
-	}
-
-	default_scnprintf(buf, info_size, "\"wr_botw\":\"W4\",");
-	for_each_ch_cs_dq(ch, NUM_CH, cs, NUM_CS, dq, NUM_DQ_PCH) {
-		default_scnprintf(buf, info_size, "\"WB%d_%d_%d\":\"%d\",",
-				ch, cs, dq,
-				ddr_get_wr_vmid_to_vmin(ch, cs, dq));
-	}
-
-	/* remove the last ',' character */
-	info_size--;
-
-	check_format(buf, &info_size, DEFAULT_LEN_STR);
 
 	return info_size;
 }

@@ -83,8 +83,6 @@ config SEC_FACTORY
 endmenu
 
 source "drivers/samsung/debug/Kconfig"
-source "drivers/samsung/misc/Kconfig"
-source "drivers/samsung/quest/Kconfig"
 
 config SEC_CLASS_TEST
 	bool "KUnit test for sec_class_test"
