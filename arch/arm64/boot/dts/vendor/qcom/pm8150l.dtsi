@@ -411,8 +411,8 @@
 				reg = <0xde00 0x100>;
 				reg-names = "ab_base";
 				regulator-name = "ab";
-				regulator-min-microvolt = <4600000>;
-				regulator-max-microvolt = <6000000>;
+				regulator-min-microvolt = <4400000>;
+				regulator-max-microvolt = <5900000>;
 				qcom,swire-control;
 			};
 
@@ -420,8 +420,8 @@
 				reg = <0xdc00 0x100>;
 				reg-names = "ibb_base";
 				regulator-name = "ibb";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <5300000>;
+				regulator-min-microvolt = <700000>;
+				regulator-max-microvolt = <5200000>;
 				qcom,swire-control;
 			};
 		};
