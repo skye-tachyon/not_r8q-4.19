@@ -440,6 +440,7 @@ struct sde_crtc_state {
 	struct sde_core_perf_params new_perf;
 	int secure_session;
 	bool color_invert_on;
+	u8 fod_dim_alpha;
 };
 
 enum sde_crtc_irq_state {
@@ -904,5 +905,7 @@ static inline void sde_crtc_set_compression_ratio(
 end:
 	SDE_DEBUG("sde_crtc comp ratio: %d\n", sde_crtc->comp_ratio);
 }
+
+bool sde_crtc_is_fod_enabled(struct drm_crtc_state *state);
 
 #endif /* _SDE_CRTC_H_ */
