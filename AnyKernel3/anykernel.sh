@@ -34,7 +34,7 @@ set_perm_recursive 0 0 755 644 $ramdisk/*;
 set_perm_recursive 0 0 750 750 $ramdisk/init* $ramdisk/sbin;
 
 ## AnyKernel boot install
-dump_boot;
+split_boot;
 
 case "$ZIPFILE" in
    *-eff*)
@@ -79,7 +79,7 @@ elif [ $cos == oplus ]; then
    patch_cmdline "androidboot.selinux" "androidboot.selinux=permissive";
    ui_print " "
    ui_print " • Spoofing verified boot state to green... • "
-   patch_cmdline "ro.boot.verifiedbootstate" "ro.boot.verifiedbootstate=green";
+   patch_cmdline "ro.boot.verifiedbootstate=orange" "ro.boot.verifiedbootstate=green";
 else
    ui_print " "
    ui_print " • AOSP ROM detected! • " # Android 16/15/14/13 veri gud
@@ -88,16 +88,21 @@ else
    patch_cmdline "android.is_aosp" "android.is_aosp=1";
    ui_print " "
    ui_print " • Spoofing verified boot state to green... • "
-   patch_cmdline "ro.boot.verifiedbootstate" "ro.boot.verifiedbootstate=green";
+   patch_cmdline "ro.boot.verifiedbootstate=orange" "ro.boot.verifiedbootstate=green";
 fi
+ui_print " "
+ui_print " • Disabling Android MemCG... • "
+   patch_cmdline "androidboot.memcg=1" "androidboot.memcg=0";
 
 ui_print " "
 ui_print " • Patching vbmeta unconditionally... • "
 dd if=$home/vbmeta.img of=/dev/block/platform/soc/1d84000.ufshc/by-name/vbmeta
 
+
 ui_print " "
 ui_print " • Patching dtbo unconditionally... • "
-ui_print " "
+dd if=$home/dtbo.img of=/dev/block/platform/soc/1d84000.ufshc/by-name/dtbo
 
-write_boot;
+flash_boot;
+flash_dtbo;
 ## end boot install
