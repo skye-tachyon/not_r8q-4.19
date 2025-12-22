@@ -6330,14 +6330,11 @@ static void record_wakee(struct task_struct *p)
  * whatever is irrelevant, spread criteria is apparent partner count exceeds
  * socket size.
  */
-static int wake_wide(struct task_struct *p, int sibling_count_hint)
+static int wake_wide(struct task_struct *p)
 {
 	unsigned int master = current->wakee_flips;
 	unsigned int slave = p->wakee_flips;
 	int llc_size = this_cpu_read(sd_llc_size);
-
-	if (sibling_count_hint >= llc_size)
-		return 1;
 
 	if (master < slave)
 		swap(master, slave);
@@ -7846,7 +7843,7 @@ static DEFINE_PER_CPU(cpumask_t, energy_cpus);
  */
 
 static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu,
-				     int sync, int sibling_count_hint)
+				     int sync)
 {
 	unsigned long prev_energy = ULONG_MAX, best_energy = ULONG_MAX, energy[NR_CPUS] = {0};
 	struct root_domain *rd = cpu_rq(smp_processor_id())->rd;
@@ -8019,8 +8016,7 @@ eas_not_ready:
  * preempt must be disabled.
  */
 static int
-select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_flags,
-		    int sibling_count_hint)
+select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_flags)
 {
 	struct sched_domain *tmp, *sd = NULL;
 	int cpu = smp_processor_id();
@@ -8030,8 +8026,7 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 
 	if (static_branch_unlikely(&sched_energy_present)) {
 		rcu_read_lock();
-		new_cpu = find_energy_efficient_cpu(p, prev_cpu, sync,
-						    sibling_count_hint);
+		new_cpu = find_energy_efficient_cpu(p, prev_cpu, sync);
 		if (unlikely(new_cpu < 0))
 			new_cpu = prev_cpu;
 		rcu_read_unlock();
@@ -8045,14 +8040,13 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 			if (uclamp_latency_sensitive(p) && !sched_feat(EAS_PREFER_IDLE) && !sync)
 				goto sd_loop;
 
-			new_cpu = find_energy_efficient_cpu(p, prev_cpu, sync,
-							    sibling_count_hint);
+			new_cpu = find_energy_efficient_cpu(p, prev_cpu, sync);
 			if (new_cpu >= 0)
 				return new_cpu;
 			new_cpu = prev_cpu;
 		}
 
-		want_affine = !wake_wide(p, 1) &&
+		want_affine = !wake_wide(p) &&
 			      cpumask_test_cpu(cpu, &p->cpus_allowed);
 	}
 
