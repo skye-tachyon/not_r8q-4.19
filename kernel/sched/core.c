@@ -2709,7 +2709,6 @@ static void ttwu_queue(struct task_struct *p, int cpu, int wake_flags)
 #if SCHED_FEAT_TTWU_QUEUE
 	if (ttwu_queue_wakelist(p, cpu, wake_flags))
 		return;
-	}
 #endif
 #endif
 
@@ -2954,6 +2953,8 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
 #endif /* CONFIG_SMP */
 
 	ttwu_queue(p, cpu, wake_flags);
+unlock:
+	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
 stat:
 	ttwu_stat(p, cpu, wake_flags);
 out:
