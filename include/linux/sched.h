@@ -439,6 +439,12 @@ struct util_est {
 #define UTIL_EST_WEIGHT_SHIFT		2
 } __attribute__((__aligned__(sizeof(u64))));
 
+#ifdef UTIL_AVG_UNCHANGED
+#undef UTIL_AVG_UNCHANGED
+#endif
+
+#define UTIL_AVG_UNCHANGED 0x1
+
 /*
  * The load/runnable/util_avg accumulates an infinite geometric series
  * (see __update_load_avg_cfs_rq() in kernel/sched/pelt.c).
@@ -789,6 +795,9 @@ struct task_struct {
 #ifdef CONFIG_SMP
 	struct llist_node		wake_entry;
 	int				on_cpu;
+#ifdef CONFIG_SPRD_ROTATION_TASK
+	u64                             last_enqueue_ts;
+#endif
 #ifdef CONFIG_THREAD_INFO_IN_TASK
 	/* Current CPU: */
 	unsigned int			cpu;

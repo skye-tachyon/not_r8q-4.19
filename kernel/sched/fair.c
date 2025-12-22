@@ -11133,6 +11133,12 @@ no_move:
 				}
 				*continue_balancing = 0;
 			}
+			
+			if (is_reserved(this_cpu) ||
+				is_reserved(cpu_of(busiest))) {
+				*continue_balancing = 0;
+				goto out;
+	        	}
 		}
 	} else {
 		sd->nr_balance_failed = 0;
