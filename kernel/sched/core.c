@@ -57,6 +57,9 @@ __read_mostly int scheduler_running;
  */
 int sysctl_sched_rt_runtime = 980000;
 
+/* record the min capacity cpus */
+struct cpumask min_cap_cpu_mask;
+
 /*
  * __task_rq_lock - lock the rq @p resides on.
  */
@@ -430,8 +433,7 @@ void wake_q_add(struct wake_q_head *head, struct task_struct *task)
 }
 
 static int
-try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
-	       int sibling_count_hint);
+try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags);
 
 void wake_up_q(struct wake_q_head *head)
 {
@@ -450,7 +452,7 @@ void wake_up_q(struct wake_q_head *head)
 		 * try_to_wake_up() executes a full barrier, which pairs with
 		 * the queueing in wake_q_add() so as not to miss wakeups.
 		 */
-		try_to_wake_up(task, TASK_NORMAL, 0, head->count);
+		try_to_wake_up(task, TASK_NORMAL, 0);
 		put_task_struct(task);
 	}
 }
@@ -1525,6 +1527,9 @@ static inline void enqueue_task(struct rq *rq, struct task_struct *p, int flags)
 
 	uclamp_rq_inc(rq, p);
 	p->sched_class->enqueue_task(rq, p, flags);
+#ifdef CONFIG_SPRD_ROTATION_TASK
+	p->last_enqueue_ts = sched_ktime_clock();
+#endif
 }
 
 static inline void dequeue_task(struct rq *rq, struct task_struct *p, int flags)
@@ -2703,7 +2708,6 @@ static void ttwu_queue(struct task_struct *p, int cpu, int wake_flags)
 #if SCHED_FEAT_TTWU_QUEUE
 	if (ttwu_queue_wakelist(p, cpu, wake_flags))
 		return;
-	}
 #endif
 #endif
 
@@ -2801,8 +2805,6 @@ static void ttwu_queue(struct task_struct *p, int cpu, int wake_flags)
  * @p: the thread to be awakened
  * @state: the mask of task states that can be woken
  * @wake_flags: wake modifier flags (WF_*)
- * @sibling_count_hint: A hint at the number of threads that are being woken up
- *                      in this event.
  *
  * If (@state & @p->state) @p->state = TASK_RUNNING.
  *
@@ -2818,8 +2820,7 @@ static void ttwu_queue(struct task_struct *p, int cpu, int wake_flags)
  *	   %false otherwise.
  */
 static int
-try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
-	       int sibling_count_hint)
+try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 {
 	unsigned long flags;
 	int cpu, success = 0;
@@ -2948,6 +2949,8 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
 #endif /* CONFIG_SMP */
 
 	ttwu_queue(p, cpu, wake_flags);
+unlock:
+	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
 stat:
 	ttwu_stat(p, cpu, wake_flags);
 out:
@@ -3019,13 +3022,13 @@ out:
  */
 int wake_up_process(struct task_struct *p)
 {
-	return try_to_wake_up(p, TASK_NORMAL, 0, 1);
+	return try_to_wake_up(p, TASK_NORMAL, 0);
 }
 EXPORT_SYMBOL(wake_up_process);
 
 int wake_up_state(struct task_struct *p, unsigned int state)
 {
-	return try_to_wake_up(p, state, 0, 1);
+	return try_to_wake_up(p, state, 0);
 }
 
 /*
@@ -3955,6 +3958,10 @@ unsigned long long task_sched_runtime(struct task_struct *p)
 	return ns;
 }
 
+#ifdef CONFIG_SPRD_ROTATION_TASK
+static DEFINE_RAW_SPINLOCK(rotation_lock);
+#endif
+
 /*
  * This function gets called by the timer code, with HZ frequency.
  * We call it with interrupts disabled.
@@ -3987,6 +3994,17 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq->idle_balance = idle_cpu(cpu);
 	trigger_load_balance(rq);
+#endif
+
+#ifdef CONFIG_SPRD_ROTATION_TASK
+	if (curr->sched_class == &fair_sched_class) {
+		if (rq->misfit_task_load && READ_ONCE(curr->state) == TASK_RUNNING &&
+		    cpumask_test_cpu(cpu, &min_cap_cpu_mask)) {
+			raw_spin_lock(&rotation_lock);
+			check_for_task_rotation(rq, cpu);
+			raw_spin_unlock(&rotation_lock);
+		}
+	}
 #endif
 }
 
@@ -4716,7 +4734,7 @@ asmlinkage __visible void __sched preempt_schedule_irq(void)
 int default_wake_function(wait_queue_entry_t *curr, unsigned mode, int wake_flags,
 			  void *key)
 {
-	return try_to_wake_up(curr->private, mode, wake_flags, 1);
+	return try_to_wake_up(curr->private, mode, wake_flags);
 }
 EXPORT_SYMBOL(default_wake_function);
 

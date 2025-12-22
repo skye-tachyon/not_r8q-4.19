@@ -1504,6 +1504,11 @@ static inline void sched_domains_numa_masks_set(unsigned int cpu) { }
 static inline void sched_domains_numa_masks_clear(unsigned int cpu) { }
 #endif
 
+#if defined(CONFIG_NUMA_BALANCING) || defined(CONFIG_SPRD_ROTATION_TASK)
+extern int migrate_swap(struct task_struct *p, struct task_struct *t,
+			int cpu, int scpu);
+#endif
+
 #ifdef CONFIG_NUMA_BALANCING
 /* The regions in numa_faults array from task_struct */
 enum numa_faults_stats {
@@ -1818,6 +1823,7 @@ static inline int task_on_rq_migrating(struct task_struct *p)
 #define WF_SYNC			0x01		/* Waker goes to sleep after wakeup */
 #define WF_FORK			0x02		/* Child wakeup after fork */
 #define WF_MIGRATED		0x4		/* Internal use, task got migrated */
+#define WF_ON_RQ	0x08		/* wakee is on_rq */
 
 /*
  * To aid in avoiding the subversion of "niceness" due to uneven distribution
@@ -2794,6 +2800,8 @@ bool uclamp_boosted(struct task_struct *p);
 # define arch_scale_freq_invariant()	false
 #endif
 
+extern struct cpumask min_cap_cpu_mask;
+
 #ifdef CONFIG_SMP
 static inline unsigned long cpu_util_cfs(struct rq *rq)
 {
@@ -2872,8 +2880,16 @@ unsigned long scale_irq_capacity(unsigned long util, unsigned long irq, unsigned
 
 #ifdef CONFIG_ENERGY_MODEL
 #define perf_domain_span(pd) (to_cpumask(((pd)->em_pd->cpus)))
+DECLARE_STATIC_KEY_FALSE(sched_energy_present);
+
+static inline bool sched_energy_enabled(void)
+{
+	return static_branch_unlikely(&sched_energy_present);
+}
+
 #else
 #define perf_domain_span(pd) NULL
+static inline bool sched_energy_enabled(void) { return false; }
 #endif
 
 #ifdef CONFIG_SMP
@@ -2885,6 +2901,27 @@ enum sched_boost_policy {
 	SCHED_BOOST_ON_BIG,
 	SCHED_BOOST_ON_ALL,
 };
+
+#ifdef CONFIG_SPRD_ROTATION_TASK
+DECLARE_PER_CPU_SHARED_ALIGNED(bool, cpu_reserved);
+static inline bool is_reserved(int cpu)
+{
+	return per_cpu(cpu_reserved, cpu);
+}
+
+static inline void mark_reserved(int cpu)
+{
+	per_cpu(cpu_reserved, cpu) = true;
+}
+
+static inline void clear_reserved(int cpu)
+{
+	per_cpu(cpu_reserved, cpu) = false;
+}
+
+void check_for_task_rotation(struct rq *src_rq, int cpu);
+u64 sched_ktime_clock(void);
+#endif
 
 #ifdef CONFIG_SMP
 static inline unsigned long thermal_cap(int cpu)

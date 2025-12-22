@@ -18,8 +18,8 @@
 		compatible = "regulator-fixed";
 		gpio = <&tlmm 92 0>;
 		regulator-name = "tsp_ldo_en";
-		regulator-min-microvolt = <3000000>;
-		regulator-max-microvolt = <3000000>;
+		regulator-min-microvolt = <2862500>;
+		regulator-max-microvolt = <2862500>;
 		enable-active-high;
 		regulator-boot-on;
 	};

@@ -27,7 +27,7 @@
  * Consider buddies to be cache hot, decreases the likeliness of a
  * cache buddy being migrated away, increases cache locality.
  */
-#define SCHED_FEAT_CACHE_HOT_BUDDY 1
+#define SCHED_FEAT_CACHE_HOT_BUDDY 0
 
 /*
  * Allow wakeup-time preemption of the current task:
@@ -46,7 +46,7 @@
  * Queue remote wakeups on the target CPU and process them
  * using the scheduler IPI. Reduces rq->lock contention/bounces.
  */
-#define SCHED_FEAT_TTWU_QUEUE 0
+#define SCHED_FEAT_TTWU_QUEUE 1
 
 /*
  * When doing wakeups, attempt to limit superfluous scans of the LLC domain.
@@ -101,7 +101,7 @@
  *   the EAS path for wakeup task placement. Otherwise, put
  *   those tasks through the mainline slow path.
  */
-#define SCHED_FEAT_EAS_PREFER_IDLE 0
+#define SCHED_FEAT_EAS_PREFER_IDLE 1
 
 /*
  * Request max frequency from schedutil whenever a RT task is running.

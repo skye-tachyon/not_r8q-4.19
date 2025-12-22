@@ -290,7 +290,7 @@ static u32 s1_delay[PON_S1_COUNT_MAX + 1] = {
 	6720, 10256
 };
 
-#ifdef CONFIG_SEC_PM
+#ifdef CONFIG_SEC_PM_DEBUG
 static const char * const sec_pon_reason[] = {
 	/* PON_PON_REASON1 */
 	"HARDRST", "SMPL", "RTC", "DC", "USB", "PON1", "CBL", "KPD",
@@ -1476,7 +1476,7 @@ int qpnp_get_s2_reset_onoff(void)
 EXPORT_SYMBOL(qpnp_get_s2_reset_onoff);
 #endif
 
-#if defined(CONFIG_SEC_PM)
+#if defined(CONFIG_SEC_PM_DEBUG)
 static int
 qpnp_control_s2_reset(struct qpnp_pon *pon, struct qpnp_pon_config *cfg, int on)
 {
@@ -1548,7 +1548,7 @@ ssize_t sec_get_pwrsrc(char *buf)
 	return size;
 }
 EXPORT_SYMBOL(sec_get_pwrsrc);
-#endif /* CONFIG_SEC_PM */
+#endif /* CONFIG_SEC_PM_DEBUG */
 
 static int
 qpnp_pon_request_irqs(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
@@ -2553,7 +2553,9 @@ static void __ref smpl_panic(struct work_struct *work)
 		int offset;
 
 		offset = scnprintf(buf, sizeof(buf), "SMPL Occurred ");
+#ifdef CONFIG_SEC_PM_DEBUG
 		sec_get_pwrsrc(buf + offset);
+#endif /* CONFIG_SEC_PM_DEBUG */
 		panic("%s", buf);
 	}
 }
@@ -2609,7 +2611,7 @@ static int qpnp_pon_read_hardware_info(struct qpnp_pon *pon, bool sys_reset)
 		boot_reason = ffs(pon_sts);
 
 	index = ffs(pon_sts) - 1;
-#ifdef CONFIG_SEC_PM
+#ifdef CONFIG_SEC_PM_DEBUG
 	if (index > -1)
 		pon_index[num_pmic] = index;
 	else
@@ -2652,7 +2654,7 @@ static int qpnp_pon_read_hardware_info(struct qpnp_pon *pon, bool sys_reset)
 		poff_sts = buf[0] | (u16)(buf[1] << 8);
 	}
 	index = ffs(poff_sts) - 1 + reason_index_offset;
-#ifdef CONFIG_SEC_PM
+#ifdef CONFIG_SEC_PM_DEBUG
 	if (index > -1)
 		poff_index[num_pmic] = index;
 	else

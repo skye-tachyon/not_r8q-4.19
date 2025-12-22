@@ -63,9 +63,8 @@
 			cpu-release-addr = <0x0 0x90000000>;
 			next-level-cache = <&L2_0>;
 			qcom,freq-domain = <&cpufreq_hw 0 4>;
-			efficiency = <448>;
 			capacity-dmips-mhz = <448>;
-			dynamic-power-coefficient = <195>;
+			dynamic-power-coefficient = <103>;
 			#cooling-cells = <2>;
 			L2_0: l2-cache {
 			      compatible = "arm,arch-cache";
@@ -95,9 +94,8 @@
 			cpu-release-addr = <0x0 0x90000000>;
 			next-level-cache = <&L2_1>;
 			qcom,freq-domain = <&cpufreq_hw 0 4>;
-			efficiency = <448>;
 			capacity-dmips-mhz = <448>;
-			dynamic-power-coefficient = <195>;
+			dynamic-power-coefficient = <103>;
 			L2_1: l2-cache {
 			      compatible = "arm,arch-cache";
 			      cache-level = <2>;
@@ -121,9 +119,8 @@
 			cpu-release-addr = <0x0 0x90000000>;
 			next-level-cache = <&L2_2>;
 			qcom,freq-domain = <&cpufreq_hw 0 4>;
-			efficiency = <448>;
 			capacity-dmips-mhz = <448>;
-			dynamic-power-coefficient = <195>;
+			dynamic-power-coefficient = <103>;
 			L2_2: l2-cache {
 			      compatible = "arm,arch-cache";
 			      cache-level = <2>;
@@ -147,9 +144,8 @@
 			cpu-release-addr = <0x0 0x90000000>;
 			next-level-cache = <&L2_3>;
 			qcom,freq-domain = <&cpufreq_hw 0 4>;
-			efficiency = <448>;
 			capacity-dmips-mhz = <448>;
-			dynamic-power-coefficient = <195>;
+			dynamic-power-coefficient = <103>;
 			L2_3: l2-cache {
 			      compatible = "arm,arch-cache";
 			      cache-level = <2>;
@@ -173,9 +169,8 @@
 			cpu-release-addr = <0x0 0x90000000>;
 			next-level-cache = <&L2_4>;
 			qcom,freq-domain = <&cpufreq_hw 1 4>;
-			efficiency = <1024>;
-			capacity-dmips-mhz = <1024>;
-			dynamic-power-coefficient = <377>;
+			capacity-dmips-mhz = <1023>;
+			dynamic-power-coefficient = <340>;
 			#cooling-cells = <2>;
 			L2_4: l2-cache {
 			      compatible = "arm,arch-cache";
@@ -200,9 +195,8 @@
 			cpu-release-addr = <0x0 0x90000000>;
 			next-level-cache = <&L2_5>;
 			qcom,freq-domain = <&cpufreq_hw 1 4>;
-			efficiency = <1024>;
-			capacity-dmips-mhz = <1024>;
-			dynamic-power-coefficient = <377>;
+			capacity-dmips-mhz = <1023>;
+			dynamic-power-coefficient = <340>;
 			L2_5: l2-cache {
 			      compatible = "arm,arch-cache";
 			      cache-level = <2>;
@@ -226,9 +220,8 @@
 			cpu-release-addr = <0x0 0x90000000>;
 			next-level-cache = <&L2_6>;
 			qcom,freq-domain = <&cpufreq_hw 1 4>;
-			efficiency = <1024>;
-			capacity-dmips-mhz = <1024>;
-			dynamic-power-coefficient = <377>;
+			capacity-dmips-mhz = <1023>;
+			dynamic-power-coefficient = <340>;
 			L2_6: l2-cache {
 			      compatible = "arm,arch-cache";
 			      cache-level = <2>;
@@ -252,9 +245,8 @@
 			cpu-release-addr = <0x0 0x90000000>;
 			next-level-cache = <&L2_7>;
 			qcom,freq-domain = <&cpufreq_hw 2 4>;
-			efficiency = <1022>;
-			capacity-dmips-mhz = <1022>;
-			dynamic-power-coefficient = <458>;
+			capacity-dmips-mhz = <1024>;
+			dynamic-power-coefficient = <409>;
 			#cooling-cells = <2>;
 			L2_7: l2-cache {
 			      compatible = "arm,arch-cache";
@@ -344,7 +336,7 @@
 	};
 
 	chosen {
-                bootargs = "quiet rcu_nocbs=0-7 rcu_nocb_poll cgroup.memory=nokmem noirqdebug nodebugmon";
+                bootargs = "rcupdate.rcu_normal_after_boot=1 quiet rcu_nocbs=0-7 rcu_nocb_poll noirqdebug nodebugmon";
 		rng-seed = <0x12345678>;
 	};
 
@@ -2624,6 +2616,7 @@
 					compatible = "qcom,msm-cdsp-rm";
 					qcom,qos-latency-us = <67>;
 					qcom,qos-maxhold-ms = <20>;
+					qcom,qos-cores = <0 1 2 3>;
 					qcom,compute-cx-limit-en;
 					qcom,compute-priority-mode = <2>;
 					#cooling-cells = <2>;
@@ -4060,26 +4053,32 @@
 
 	qcom,cpufreq-table-0 =
 			< 691200>,
+			< 787200>,
 			< 883200>,
 			< 979200>,
 			<1075200>,
 			<1171200>,
+			<1248000>,
 			<1344000>,
 			<1420800>,
+			<1516800>,
 			<1612800>,
 			<1708800>, // eff
 			<1804800>;
 
 	qcom,cpufreq-table-1 =
+			< 710400>,
 			< 825600>,
 			< 940800>,
 			<1056000>,
 			<1171200>,
+			<1286400>,
 			<1382400>,
 			<1478400>,
 			<1574400>,
 			<1670400>,
 			<1766400>,
+			<1862400>,
 			<1958400>,
 			<2054400>,
 			<2150400>,
@@ -4092,6 +4091,7 @@
 			< 960000>,
 			<1075200>,
 			<1190400>,
+			<1305600>,
 			<1401600>,
 			<1516800>,
 			<1632000>,
@@ -4099,6 +4099,7 @@
 			<1862400>,
 			<1977600>,
 			<2073600>,
+			<2169600>,
 			<2265600>,
 			<2361600>,
 			<2457600>,

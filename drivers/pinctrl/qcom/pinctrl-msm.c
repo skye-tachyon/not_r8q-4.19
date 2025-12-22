@@ -40,12 +40,14 @@
 #include "pinctrl-msm.h"
 #include "../pinctrl-utils.h"
 
-#ifdef CONFIG_SEC_PM_DEBUG
+#ifdef CONFIG_SEC_PM
 #include <linux/sec-pinmux.h>
+#ifdef CONFIG_SEC_PM_DEBUG
 #ifdef CONFIG_SEC_GPIO_DVS
 #include <linux/secgpio_dvs.h>
 #endif /* CONFIG_SEC_GPIO_DVS */
 #endif /* CONFIG_SEC_PM_DEBUG */
+#endif
 
 #define MAX_NR_GPIO 300
 #define PS_HOLD_OFFSET 0x820
@@ -658,11 +660,14 @@ int msm_gp_get_value(struct gpio_chip *chip, uint pin_no, int in_out_type)
 
 	return 0;
 }
+#endif /* CONFIG_SEC_PM_DEBUG */
 
 bool msm_gpio_is_valid(int gpionum)
 {
+#ifdef CONFIG_SEC_PM_DEBUG
 	if (gpionum < 0 || gpionum >= total_pin_count)
 		return 0;
+#endif
 
 	if (gpionum >= CONFIG_SENSORS_FP_SPI_GPIO_START
 			&& gpionum <= CONFIG_SENSORS_FP_SPI_GPIO_END)
@@ -672,14 +677,10 @@ bool msm_gpio_is_valid(int gpionum)
                         && gpionum <= CONFIG_ESE_SPI_GPIO_END)
                 return 0;
 #endif
-#ifdef CONFIG_MST_LDO
-	if (gpionum == MST_GPIO_D_EN || gpionum == MST_GPIO_D_DATA)
-		return 0;
-#endif
 
 	return 1;
 }
-#endif /* CONFIG_SEC_PM_DEBUG */
+
 
 #ifdef CONFIG_DEBUG_FS
 #include <linux/seq_file.h>

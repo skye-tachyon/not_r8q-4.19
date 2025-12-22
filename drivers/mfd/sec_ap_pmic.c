@@ -30,8 +30,9 @@ static struct device *sec_ap_pmic_dev;
 static int pwrsrc_show(struct seq_file *m, void *v)
 {
 	char buf[SZ_1K];
-
+#ifdef CONFIG_SEC_PM_DEBUG
 	sec_get_pwrsrc(buf);
+#endif /* CONFIG_SEC_PM_DEBUG */
 	seq_printf(m, "%s", buf);
 
 	return 0;

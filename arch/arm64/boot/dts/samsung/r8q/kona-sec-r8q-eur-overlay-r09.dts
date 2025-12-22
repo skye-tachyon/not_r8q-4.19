@@ -14,7 +14,6 @@
 /plugin/;
 
 #include "../common/kona-sec-common.dtsi"
-#include "../drivers/kona-sec-r8q-mst-r00.dtsi"
 #include "kona-sec-r8q-r09.dtsi"
 
 / {
