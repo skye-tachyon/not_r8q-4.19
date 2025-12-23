@@ -172,7 +172,7 @@ int devfreq_add_devbw(struct device *dev)
 	}
 
 	if (of_property_read_string(dev->of_node, "governor", &gov_name))
-		gov_name = "performance";
+		gov_name = "simple_ondemand";
 
 	d->df = devfreq_add_device(dev, p, gov_name, NULL);
 	if (IS_ERR(d->df)) {
