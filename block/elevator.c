@@ -594,8 +594,8 @@ out:
 }
 
 /*
- * For blk-mq devices, we default to using ssg, if available, for single
- * queue devices.  If deadline isn't available OR we have multiple queues,
+ * For blk-mq devices, we default to using mq-deadline, if available, for single
+ * queue devices.  If mq-deadline isn't available OR we have multiple queues,
  * default to "none".
  */
 int elevator_init_mq(struct request_queue *q)
@@ -623,7 +623,7 @@ int elevator_init_mq(struct request_queue *q)
 		if (!e)
 			goto out;
 	} else {
-		e = elevator_get(q, "ssg", false);
+		e = elevator_get(q, "mq-deadline", false);
 		if (!e)
 			goto out;
 	}
