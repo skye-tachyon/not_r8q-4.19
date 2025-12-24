@@ -29,15 +29,6 @@
 #define BCM_TCS_CMD_VALID_SHFT		29
 #define BCM_TCS_CMD_VALID_MASK		0x20000000
 #define BCM_TCS_CMD_VOTE_X_SHFT		14
-#define BCM_TCS_CMD_VOTE_MASK		0x3FFF
-#define BCM_TCS_CMD_VOTE_Y_SHFT		0
-#define BCM_TCS_CMD_VOTE_Y_MASK		0xFFFC000
-
-#define BCM_TCS_CMD(commit, valid, vote_x, vote_y) \
-	(((commit & 0x1) << BCM_TCS_CMD_COMMIT_SHFT) |\
-	((valid & 0x1) << BCM_TCS_CMD_VALID_SHFT) |\
-	((vote_x & BCM_TCS_CMD_VOTE_MASK) << BCM_TCS_CMD_VOTE_X_SHFT) |\
-	((vote_y & BCM_TCS_CMD_VOTE_MASK) << BCM_TCS_CMD_VOTE_Y_SHFT))
 
 static int msm_bus_dev_init_qos(struct device *dev, void *data);
 static int msm_bus_dev_sbm_config(struct device *dev, bool enable);
