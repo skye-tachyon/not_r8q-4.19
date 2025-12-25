@@ -1320,12 +1320,12 @@ TRACE_EVENT(sched_compute_energy,
 TRACE_EVENT(sched_task_util,
 
 	TP_PROTO(struct task_struct *p, unsigned long candidates,
-		int best_energy_cpu, bool sync, bool need_idle, int fastpath,
+		int best_energy_cpu, bool sync,
 		bool placement_boost, u64 start_t,
 		bool stune_boosted, bool is_rtg, bool rtg_skip_min,
 		int start_cpu),
 
-	TP_ARGS(p, candidates, best_energy_cpu, sync, need_idle, fastpath,
+	TP_ARGS(p, candidates, best_energy_cpu, sync,
 		placement_boost, start_t, stune_boosted, is_rtg, rtg_skip_min,
 		start_cpu),
 
@@ -1337,8 +1337,6 @@ TRACE_EVENT(sched_task_util,
 		__field(int,		prev_cpu)
 		__field(int,		best_energy_cpu)
 		__field(bool,		sync)
-		__field(bool,		need_idle)
-		__field(int,		fastpath)
 		__field(int,		placement_boost)
 		__field(int,		rtg_cpu)
 		__field(u64,		latency)
@@ -1359,8 +1357,6 @@ TRACE_EVENT(sched_task_util,
 		__entry->candidates		= candidates;
 		__entry->best_energy_cpu        = best_energy_cpu;
 		__entry->sync                   = sync;
-		__entry->need_idle              = need_idle;
-		__entry->fastpath               = fastpath;
 		__entry->placement_boost        = placement_boost;
 		__entry->latency                = (sched_clock() - start_t);
 		__entry->stune_boosted          = stune_boosted;
