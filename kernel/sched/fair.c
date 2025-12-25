@@ -19,6 +19,9 @@
  *
  *  Adaptive scheduling granularity, math enhancements by Peter Zijlstra
  *  Copyright (C) 2007 Red Hat, Inc., Peter Zijlstra
+ *
+ *  Capacity Aware Superset Scheduler (CASS) 
+ *  Copyright (C) 2023-2025 Sultan Alsawaf <sultan@kerneltoast.com>.
  */
 #include <linux/rbtree_augmented.h>
 #include "sched.h"
@@ -11316,9 +11319,28 @@ static unsigned int get_rr_interval_fair(struct rq *rq, struct task_struct *task
 	return rr_interval;
 }
 
-#ifdef CONFIG_SCHED_CASS
+/**
+ * DOC: Capacity Aware Superset Scheduler (CASS) description
+ *
+ * The Capacity Aware Superset Scheduler (CASS) optimizes runqueue selection of
+ * CFS tasks. By using CPU capacity as a basis for comparing the relative
+ * utilization between different CPUs, CASS fairly balances load across CPUs of
+ * varying capacities. This results in improved multi-core performance,
+ * especially when CPUs are overutilized because CASS doesn't clip a CPU's
+ * utilization when it eclipses the CPU's capacity.
+ *
+ * As a superset of capacity aware scheduling, CASS implements a hierarchy of
+ * criteria to determine the better CPU to wake a task upon between CPUs that
+ * have the same relative utilization. This way, single-core performance,
+ * latency, and cache affinity are all optimized where possible.
+ *
+ * CASS doesn't feature explicit energy awareness but its basic load balancing
+ * principle results in decreased overall energy, often better than what is
+ * possible with explicit energy awareness. By fairly balancing load based on
+ * relative utilization, all CPUs are kept at their lowest P-state necessary to
+ * satisfy the overall load at any given moment.
+ */
 #include "cass.c"
-#endif /* CONFIG_SCHED_CASS */
 
 /*
  * All the scheduling class methods:
