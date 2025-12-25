@@ -7573,7 +7573,6 @@ calc_energy(struct em_calc *ec, struct task_struct *p, struct perf_domain *pd,
 	    unsigned long cpu_cap, int cpu, int dst)
 {
 	unsigned int util_cfs;
-	unsigned long min, max = cpu_util_cfs(cpu_rq(cpu));
 
 	/*
 	 * The capacity state of CPUs of the current rd can be driven by CPUs of
@@ -7591,7 +7590,8 @@ calc_energy(struct em_calc *ec, struct task_struct *p, struct perf_domain *pd,
 	 * ratio (sum_util / cpu_capacity) is already enough to scale the EM
 	 * reported power consumption at the (eventually clamped) cpu_capacity.
 	 */
-	ec->energy_util = effective_cpu_util(cpu, cpu_util_cfs(cpu_rq(cpu)), NULL, NULL);
+	ec->energy_util = schedutil_cpu_util(cpu, util_cfs, cpu_cap,
+						       ENERGY_UTIL, NULL);
 
 	/*
 	 * Performance domain frequency: utilization clamping must be considered
@@ -7599,7 +7599,9 @@ calc_energy(struct em_calc *ec, struct task_struct *p, struct perf_domain *pd,
 	 * NOTE: in case RT tasks are running, by default the FREQUENCY_UTIL's
 	 * utilization can be max OPP.
 	 */
-	ec->cpu_util = effective_cpu_util(cpu, cpu_util_cfs(cpu_rq(cpu)), &min, &max);
+	ec->cpu_util = schedutil_cpu_util(cpu, util_cfs, cpu_cap,
+						    FREQUENCY_UTIL,
+						    cpu == dst ? p : NULL);
 }
 
 /*
@@ -7639,7 +7641,7 @@ compute_energy_change(struct task_struct *p, struct perf_domain *pd, int src,
 		 * The energy model mandates all the CPUs of a performance
 		 * domain have the same capacity.
 		 */
-		cap = arch_scale_cpu_capacity(cpumask_first(pd_mask));
+		cap = arch_scale_cpu_capacity(NULL, cpumask_first(pd_mask));
 
 		/*
 		 * The cache index is 0 if @p is moving to this cluster, and 1
