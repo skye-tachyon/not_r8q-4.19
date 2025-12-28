@@ -20,10 +20,6 @@
 #include "ss_dsi_panel_common.h"
 #endif
 
-#ifdef CONFIG_POWERSUSPEND
-#include <linux/powersuspend.h>
-#endif
-
 /**
  * topology is currently defined by a set of following 3 values:
  * 1. num of layer mixers
@@ -469,6 +465,7 @@ static int dsi_panel_power_on(struct dsi_panel *panel)
 
 #if defined(CONFIG_DISPLAY_SAMSUNG)
 	struct samsung_display_driver_data *vdd = panel->panel_private;
+
 	/* Make not to turn on the panel power when ub_con_det.gpio is high (ub is not connected) */
 	if (unlikely(vdd->is_factory_mode)) {
 		if (gpio_is_valid(vdd->ub_con_det.gpio))
@@ -513,10 +510,6 @@ static int dsi_panel_power_on(struct dsi_panel *panel)
 				panel->name, rc);
 		goto exit;
 	}
-#endif
-
-#ifdef CONFIG_POWERSUSPEND
-   	set_power_suspend_state_panel_hook(POWER_SUSPEND_INACTIVE);
 #endif
 
 #if defined(CONFIG_DISPLAY_SAMSUNG)
@@ -574,18 +567,13 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 
 #if defined(CONFIG_DISPLAY_SAMSUNG)
 	struct samsung_display_driver_data *vdd = panel->panel_private;
-	
+
 	if (!ss_panel_attach_get(vdd)) {
 		LCD_INFO("PBA booting, skip to power off panel\n");
 		return 0;
 	}
 #endif
 
-#ifdef CONFIG_POWERSUSPEND
-   	set_power_suspend_state_panel_hook(POWER_SUSPEND_ACTIVE);
-#endif
-
-	usleep_range(11000, 11010);
 	if (gpio_is_valid(panel->reset_config.disp_en_gpio))
 		gpio_set_value(panel->reset_config.disp_en_gpio, 0);
 
