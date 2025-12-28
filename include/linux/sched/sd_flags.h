@@ -101,6 +101,15 @@ SD_FLAG(SD_ASYM_CPUCAPACITY, SDF_SHARED_PARENT | SDF_NEEDS_GROUPS)
 SD_FLAG(SD_ASYM_CPUCAPACITY_FULL, SDF_SHARED_PARENT | SDF_NEEDS_GROUPS)
 
 /*
+ * Domain members share power domain
+ *
+ * SHARED_CHILD: Set from the base domain up until CPUs no longer share
+ *               the same power domain.
+ * NEEDS_GROUPS: Power domain is shared between groups.
+ */
+SD_FLAG(SD_SHARE_POWERDOMAIN, SDF_SHARED_CHILD | SDF_NEEDS_GROUPS)
+
+/*
  * Domain members share CPU capacity (i.e. SMT)
  *
  * SHARED_CHILD: Set from the base domain up until spanned CPUs no longer share
