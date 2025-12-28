@@ -206,16 +206,6 @@ struct teo_cpu {
 static DEFINE_PER_CPU(struct teo_cpu, teo_cpus);
 
 /**
- * teo_cpu_is_utilized - Check if the CPU's util is above the threshold
- * @cpu: Target CPU
- * @cpu_data: Governor CPU data for the target CPU
- */
-static bool teo_cpu_is_utilized(int cpu, struct teo_cpu *cpu_data)
-{
-	return false;
-}
-
-/**
  * teo_update - Update CPU metrics after wakeup.
  * @drv: cpuidle driver containing state data.
  * @dev: Target CPU.
@@ -408,7 +398,7 @@ static int teo_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	if (!dev->states_usage[0].disable)
 		idx = 0;
 
-	cpu_utilized = teo_cpu_is_utilized(dev->cpu, cpu_data);
+	cpu_utilized = false;
 	/*
 	 * If the CPU is being utilized over the threshold and there are only 2
 	 * states to choose from, the metrics need not be considered, so choose
