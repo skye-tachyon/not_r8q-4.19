@@ -462,6 +462,10 @@ config HAVE_SCHED_AVG_IRQ
 	depends on IRQ_TIME_ACCOUNTING || PARAVIRT_TIME_ACCOUNTING
 	depends on SMP
 
+config SCHED_TUNE
+	default y
+	bool "Dummy"
+
 config SCHED_THERMAL_PRESSURE
 	default y
 	bool "Enable periodic averaging of thermal pressure"
