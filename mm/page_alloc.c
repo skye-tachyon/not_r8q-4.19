@@ -69,6 +69,8 @@
 #include <linux/nmi.h>
 #include <linux/khugepaged.h>
 #include <linux/psi.h>
+#include <linux/cpu_input_boost.h>
+#include <linux/devfreq_boost.h>
 #include <linux/sched/cputime.h>
 
 #include <asm/sections.h>
@@ -4728,6 +4730,10 @@ retry:
 	/* Do not loop if specifically requested */
 	if (gfp_mask & __GFP_NORETRY)
 		goto nopage;
+
+	/* small boost when memory is low so allocation latency doesn't suffer too much */
+	cpu_input_boost_kick_max(100);
+	devfreq_boost_kick_max(DEVFREQ_CPU_LLCC_DDR_BW, 100);
 
 	/*
 	 * Do not retry costly high order allocations unless they are
