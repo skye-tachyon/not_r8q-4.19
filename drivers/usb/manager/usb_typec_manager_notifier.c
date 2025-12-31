@@ -453,56 +453,6 @@ void wVbus_time_update(int mode)
 }
 #endif
 
-static int manager_check_vbus_by_otg(void)
-{
-    union power_supply_propval val;
-	int otg_power = 0;
-#ifdef MANAGER_DEBUG
-	unsigned long cur_stamp;
-	int otg_power_time = 0;
-#endif
-
-    psy_do_property("otg", get,
-            POWER_SUPPLY_PROP_ONLINE, val);
-	otg_power = val.intval;
-
-	if (typec_manager.otg_stamp) {
-#ifdef MANAGER_DEBUG
-		cur_stamp = jiffies;
-		otg_power_time = time_before(cur_stamp, typec_manager.otg_stamp+msecs_to_jiffies(300));
-		pr_info("%s [OTG Accessory VBUS] duration-time=%u(ms), time_before(%d)\n", __func__,
-			jiffies_to_msecs(cur_stamp-typec_manager.otg_stamp), otg_power_time);
-		if (otg_power_time) {
-			typec_manager.vbus_by_otg_detection = 1;
-		}
-#else
-		if (time_before(jiffies, typec_manager.otg_stamp+msecs_to_jiffies(300)))
-			typec_manager.vbus_by_otg_detection = 1;
-#endif
-		typec_manager.otg_stamp = 0;
-	}
-
-	otg_power |= typec_manager.vbus_by_otg_detection;
-
-    pr_info("%s otg power? %d (otg?%d, vbusTimeCheck?%d)\n", __func__,
-			otg_power, val.intval, typec_manager.vbus_by_otg_detection);
-    return otg_power;
-}
-
-static int manager_get_otg_power_mode(void)
-{
-    union power_supply_propval val;
-	int otg_power = 0;
-
-    psy_do_property("otg", get,
-            POWER_SUPPLY_PROP_ONLINE, val);
-	otg_power = val.intval | typec_manager.vbus_by_otg_detection;;
-
-    pr_info("%s otg power? %d (otg?%d, vbusTimeCheck?%d)\n", __func__,
-			otg_power, val.intval, typec_manager.vbus_by_otg_detection);
-    return otg_power;
-}
-
 void set_usb_enable_state(void)
 {
 	if (!typec_manager.usb_enable_state) {
