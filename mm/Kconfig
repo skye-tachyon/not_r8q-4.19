@@ -1011,8 +1011,6 @@ config HIGHATOMIC_PAGEBLOCKS
 	  highatomic pageblocks.
 	  This value limits max number of highatomic pageblocks.
 
-source "mm/sec_mm/Kconfig"
-
 config FORCE_ALLOC_FROM_DMA_ZONE
 	bool "Force certain memory allocators to always return ZONE_DMA32 memory"
 	depends on ZONE_DMA32
