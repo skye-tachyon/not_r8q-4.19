@@ -44,16 +44,40 @@ jobs:
           minutes=$((duration / 60))
           seconds=$((duration % 60))
           echo "BUILD_DURATION=${minutes}m ${seconds}s" >> $GITHUB_ENV
-
-      - name: Upload to Telegram
+          
+      - name: Announce new build
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          document: not-*.zip
           message: |
             ⚙️ not_kernel CI build complete!
             📱 Device – Galaxy S20 FE (r8q)
              – Check changes on github!
             ⏱️ Build time – ${{ env.BUILD_DURATION }}
-            📝 Kernel Version - 4.19.325-graphene-st11rc:ELEMENT.
+
+      - name: Upload to Telegram
+        run: |
+          gitsha1=$(git rev-parse --short HEAD)
+          printf " Localversion: `cat bomb/out/include/config/kernel.release`
+          Clang version: AOSP Clang 18.0.1
+          Build Date: `date +'%d %B %Y'`
+          Build commit hash: $gitsha1
+          SusFS version: v2.0.0
+          KernelSU version: 33333" >> buildDetails.txt
+          buildDetails="`cat buildDetails.txt`"
+          zip_file=$(ls not-*.zip)
+          msg="*not\\-kernel* build for the *Galaxy S20FE \\(r8q\\)*
+          * *
+          \`\`\`
+          $buildDetails
+          \`\`\`
+          * * "
+          file="$zip_file"
+          curl -s -F document=@$file "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+          -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -F "disable_web_page_preview=true" \
+          -F "parse_mode=markdownv2" \
+          -F caption="$msg"
+
+
