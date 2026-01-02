@@ -51,15 +51,17 @@ jobs:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
-            ⚙️ not_kernel CI build complete!
-            📱 Device – Galaxy S20 FE (r8q)
-             – Check changes on github!
-            ⏱️ Build time – ${{ env.BUILD_DURATION }}
+            –––––––––––––––––––––––––––––––––––––
+            | ⚙️ not_kernel CI build complete!  |
+            | 🌊 Version – :ELEMENT.            |
+            –––––––––––––––––––––––––––––––––––––
+              ⏱️ Build time – ${{ env.BUILD_DURATION }}
+            –––––––––––––––––––––––––––––––––––––
 
       - name: Upload to Telegram
         run: |
           gitsha1=$(git rev-parse --short HEAD)
-          printf " Localversion: `cat bomb/out/include/config/kernel.release`
+          printf " Localversion: `cat out/include/config/kernel.release`
           Clang version: AOSP Clang 18.0.1
           Build Date: `date +'%d %B %Y'`
           Build commit hash: $gitsha1
