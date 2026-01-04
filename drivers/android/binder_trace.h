@@ -365,38 +365,6 @@ DEFINE_EVENT(binder_lru_page_class, binder_unmap_kernel_end,
 	TP_PROTO(const struct binder_alloc *alloc, size_t page_index),
 	TP_ARGS(alloc, page_index));
 
-TRACE_EVENT(binder_command,
-	TP_PROTO(uint32_t cmd),
-	TP_ARGS(cmd),
-	TP_STRUCT__entry(
-		__field(uint32_t, cmd)
-	),
-	TP_fast_assign(
-		__entry->cmd = cmd;
-	),
-	TP_printk("cmd=0x%x %s",
-		  __entry->cmd,
-		  _IOC_NR(__entry->cmd) < ARRAY_SIZE(binder_command_strings) ?
-			  binder_command_strings[_IOC_NR(__entry->cmd)] :
-			  "unknown")
-);
-
-TRACE_EVENT(binder_return,
-	TP_PROTO(uint32_t cmd),
-	TP_ARGS(cmd),
-	TP_STRUCT__entry(
-		__field(uint32_t, cmd)
-	),
-	TP_fast_assign(
-		__entry->cmd = cmd;
-	),
-	TP_printk("cmd=0x%x %s",
-		  __entry->cmd,
-		  _IOC_NR(__entry->cmd) < ARRAY_SIZE(binder_return_strings) ?
-			  binder_return_strings[_IOC_NR(__entry->cmd)] :
-			  "unknown")
-);
-
 #endif /* _BINDER_TRACE_H */
 
 #undef TRACE_INCLUDE_PATH
