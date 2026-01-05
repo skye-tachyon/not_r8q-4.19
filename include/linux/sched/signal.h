@@ -500,6 +500,16 @@ static inline void restore_saved_sigmask(void)
 		__set_current_blocked(&current->saved_sigmask);
 }
 
+static inline void restore_saved_sigmask_unless(bool interrupted)
+{
+	if (interrupted)
+		WARN_ON(!test_thread_flag(TIF_SIGPENDING));
+	else
+		restore_saved_sigmask();
+}
+
+extern int set_user_sigmask(const sigset_t __user *umask, size_t sigsetsize);
+
 static inline sigset_t *sigmask_to_save(void)
 {
 	sigset_t *res = &current->blocked;
