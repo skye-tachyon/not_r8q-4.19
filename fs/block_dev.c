@@ -336,11 +336,10 @@ static void blkdev_bio_end_io(struct bio *bio)
 		bio_check_pages_dirty(bio);
 	} else {
 		if (!bio_flagged(bio, BIO_NO_PAGE_REF)) {
-			struct bvec_iter_all iter_all;
 			struct bio_vec *bvec;
 			int i;
 
-			bio_for_each_segment_all(bvec, bio, i, iter_all)
+			bio_for_each_segment_all(bvec, bio, i)
 				put_page(bvec->bv_page);
 		}
 		bio_put(bio);
