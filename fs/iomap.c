@@ -1488,7 +1488,7 @@ int iomap_dio_iopoll(struct kiocb *kiocb, bool spin)
 
 	if (!q)
 		return 0;
-	return blk_poll(q, READ_ONCE(kiocb->ki_cookie), spin);
+	return blk_poll(q, READ_ONCE(kiocb->ki_cookie));
 }
 EXPORT_SYMBOL_GPL(iomap_dio_iopoll);
 
