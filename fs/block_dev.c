@@ -299,7 +299,7 @@ static int blkdev_iopoll(struct kiocb *kiocb, bool wait)
 	struct block_device *bdev = I_BDEV(kiocb->ki_filp->f_mapping->host);
 	struct request_queue *q = bdev_get_queue(bdev);
 
-	return blk_poll(q, READ_ONCE(kiocb->ki_cookie), wait);
+	return blk_poll(q, READ_ONCE(kiocb->ki_cookie));
 }
 
 static void blkdev_bio_end_io(struct bio *bio)
