@@ -720,10 +720,7 @@ endif
 KBUILD_CFLAGS   += -fno-trapping-math -fno-math-errno -ffp-contract=fast
 
 # specific cpu optimizations
-KBUILD_CFLAGS += -mcpu=cortex-a77+crypto+crc+dotprod+fp16fml+lse+rcpc
 KBUILD_CFLAGS += -march=armv8.2-a+crypto+crc+dotprod+fp16fml+lse+rcpc
-
-KBUILD_AFLAGS += -mcpu=cortex-a77+crypto+crc+dotprod+fp16fml+lse+rcpc
 KBUILD_AFLAGS += -march=armv8.2-a+crypto+crc+dotprod+fp16fml+lse+rcpc
 
 ifdef CONFIG_CC_IS_CLANG
