@@ -7,6 +7,10 @@
 #define EXPECTED_SIZE_XX 0x363
 #define EXPECTED_HASH_XX "4359c171f32543394cbc23ef908c4bb94cad7c8087002ba164c8230948c21549"
 
+// dummy.keystore
+#define EXPECTED_SIZE_NEXT 0x3e6
+#define EXPECTED_HASH_NEXT "79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7"
+
 // rsuntk/KernelSU
 #define EXPECTED_SIZE_RSUNTK 0x396
 #define EXPECTED_HASH_RSUNTK                                                   \
