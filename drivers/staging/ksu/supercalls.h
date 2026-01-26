@@ -84,6 +84,14 @@ struct ksu_manage_mark_cmd {
 	__u32 result; // Output: for get operation - mark status or reg_count
 };
 
+struct ksu_get_hook_mode_cmd {
+	char mode[16];
+};
+
+struct ksu_get_version_tag_cmd {
+	char tag[32];
+};
+
 struct ksu_nuke_ext4_sysfs_cmd {
 	__aligned_u64 arg; // Input: mnt pointer
 };

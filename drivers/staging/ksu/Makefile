@@ -25,11 +25,15 @@ ccflags-y += -I$(objtree)/security/selinux -include $(srctree)/include/uapi/asm-
 obj-$(CONFIG_KSU) += kernelsu.o
 
 KSU_VERSION=33333
+KSU_VERSION_TAG=v3.0.0
 KSU_GIT_BRANCH="susfs-rksu-master"
 
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
+ccflags-y += -DKSU_VERSION_TAG=\"$(KSU_VERSION_TAG)\"
 ccflags-y += -DKSU_BRANCH=\"$(KSU_GIT_BRANCH)\"
+
 $(info -- KernelSU version: $(KSU_VERSION))
+$(info -- KernelSU tag: $(KSU_VERSION_TAG))
 $(info -- KernelSU branch: $(KSU_GIT_BRANCH))
 
 # SELinux drivers check
