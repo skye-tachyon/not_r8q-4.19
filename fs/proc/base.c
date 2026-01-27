@@ -609,84 +609,6 @@ static const struct file_operations proc_lstats_operations = {
 
 #endif
 
-static int sched_init_task_load_show(struct seq_file *m, void *v)
-{
-	seq_printf(m, "0\n");
-	return 0;
-}
-
-static ssize_t
-sched_init_task_load_write(struct file *file, const char __user *buf,
-			   size_t count, loff_t *offset)
-{
-	return count;
-}
-
-static int sched_init_task_load_open(struct inode *inode, struct file *filp)
-{
-	return single_open(filp, sched_init_task_load_show, inode);
-}
-
-static const struct file_operations proc_pid_sched_init_task_load_operations = {
-	.open		= sched_init_task_load_open,
-	.read		= seq_read,
-	.write		= sched_init_task_load_write,
-	.llseek		= seq_lseek,
-	.release	= single_release,
-};
-
-static int sched_group_id_show(struct seq_file *m, void *v)
-{
-	seq_printf(m, "0\n");
-	return 0;
-}
-
-static ssize_t
-sched_group_id_write(struct file *file, const char __user *buf,
-		     size_t count, loff_t *offset)
-{
-	return count;
-}
-
-static int sched_group_id_open(struct inode *inode, struct file *filp)
-{
-	return single_open(filp, sched_group_id_show, inode);
-}
-
-static const struct file_operations proc_pid_sched_group_id_operations = {
-	.open		= sched_group_id_open,
-	.read		= seq_read,
-	.write		= sched_group_id_write,
-	.llseek		= seq_lseek,
-	.release	= single_release,
-};
-
-static int sched_low_latency_show(struct seq_file *m, void *v)
-{
-	seq_printf(m, "0\n");
-	return 0;
-}
-
-static ssize_t
-sched_low_latency_write(struct file *file, const char __user *buf,
-			size_t count, loff_t *offset)
-{
-	return count;
-}
-
-static int sched_low_latency_open(struct inode *inode, struct file *filp)
-{
-	return single_open(filp, sched_low_latency_show, inode);
-}
-
-static const struct file_operations proc_pid_sched_low_latency_operations = {
-	.open		= sched_low_latency_open,
-	.read		= seq_read,
-	.write		= sched_low_latency_write,
-	.llseek		= seq_lseek,
-	.release	= single_release,
-};
-
 static int proc_oom_score(struct seq_file *m, struct pid_namespace *ns,
 			  struct pid *pid, struct task_struct *task)
 {
@@ -1687,6 +1609,88 @@ static const struct file_operations proc_pid_sched_wake_up_idle_operations = {
 };
 
 #endif	/* CONFIG_SMP */
+
+#ifdef CONFIG_PELT_COMPATIBILITY_LAYER
+
+static int sched_init_task_load_show(struct seq_file *m, void *v)
+{
+	seq_puts(m, "0\n");
+	return 0;
+}
+
+static ssize_t
+sched_init_task_load_write(struct file *file, const char __user *buf,
+	    size_t count, loff_t *offset)
+{
+	return count;
+}
+
+static int sched_init_task_load_open(struct inode *inode, struct file *filp)
+{
+	return single_open(filp, sched_init_task_load_show, inode);
+}
+
+static const struct file_operations proc_pid_sched_init_task_load_operations = {
+	.open		= sched_init_task_load_open,
+	.read		= seq_read,
+	.write		= sched_init_task_load_write,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int sched_group_id_show(struct seq_file *m, void *v)
+{
+	seq_puts(m, "0\n");
+	return 0;
+}
+
+static ssize_t
+sched_group_id_write(struct file *file, const char __user *buf,
+	    size_t count, loff_t *offset)
+{
+	return count;
+}
+
+static int sched_group_id_open(struct inode *inode, struct file *filp)
+{
+	return single_open(filp, sched_group_id_show, inode);
+}
+
+static const struct file_operations proc_pid_sched_group_id_operations = {
+	.open		= sched_group_id_open,
+	.read		= seq_read,
+	.write		= sched_group_id_write,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int sched_low_latency_show(struct seq_file *m, void *v)
+{
+	seq_puts(m, "0\n");
+	return 0;
+}
+
+static ssize_t
+sched_low_latency_write(struct file *file, const char __user *buf,
+	    size_t count, loff_t *offset)
+{
+	return count;
+}
+
+static int sched_low_latency_open(struct inode *inode, struct file *filp)
+{
+	return single_open(filp, sched_low_latency_show, inode);
+}
+
+static const struct file_operations proc_pid_sched_low_latency_operations = {
+	.open		= sched_low_latency_open,
+	.read		= seq_read,
+	.write		= sched_low_latency_write,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+#endif
 
 #ifdef CONFIG_SCHED_AUTOGROUP
 /*
@@ -3446,6 +3450,13 @@ static const struct pid_entry tgid_base_stuff[] = {
 	ONE("limits",	  S_IRUGO, proc_pid_limits),
 #ifdef CONFIG_SMP
 	REG("sched_wake_up_idle", 00644, proc_pid_sched_wake_up_idle_operations),
+#endif
+#ifdef CONFIG_PELT_COMPATIBILITY_LAYER
+	REG("sched_init_task_load", 00644, proc_pid_sched_init_task_load_operations),
+	REG("sched_group_id", 00666, proc_pid_sched_group_id_operations),
+	REG("sched_boost", 0666,  proc_task_boost_enabled_operations),
+	REG("sched_boost_period_ms", 0666, proc_task_boost_period_operations),
+	REG("sched_low_latency", 00666, proc_pid_sched_low_latency_operations),
 #endif
 #ifdef CONFIG_SCHED_DEBUG
 	REG("sched",      S_IRUGO|S_IWUSR, proc_pid_sched_operations),
