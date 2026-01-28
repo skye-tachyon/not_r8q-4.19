@@ -57,13 +57,23 @@ esac
 oneui=$(file_getprop /system/build.prop ro.build.version.oneui);
 cos=$(file_getprop /system/build.prop ro.product.system.brand);
 gos=$(file_getprop /system/build.prop ro.build.host);
-if [ -n "$oneui" ]; then
+if [ $oneui == 80000 ]; then
    ui_print " "
-   ui_print " • OneUI Support was removed! • " # OneUI 7.X/6.X/5.X/4.X/3.X bomb
+   ui_print " • OneUI 8 ROM Detected • " # OneUI 8.0 real bomb
    ui_print " "
    ui_print " • Patching Fingerprint Sensor... • "
    patch_cmdline "android.is_aosp" "android.is_aosp=0";
    ui_print " "
+   ui_print " • Patching OTG... • "
+   patch_cmdline "android.is_uos" "android.is_ous=1";
+   ui_print " "
+elif [ -n "$oneui" ]; then
+   ui_print " "
+   ui_print " • OneUI ROM Detected • " # OneUI 7.X/6.X/5.X/4.X/3.X bomb
+   ui_print " "
+   ui_print " • Patching Fingerprint Sensor... • "
+   patch_cmdline "android.is_aosp" "android.is_aosp=0";
+   patch_cmdline "android.is_uos" "android.is_ous=0";
 elif [ $gos == tachyon ]; then
    ui_print " "
    ui_print " • GrapheneOS detected! • "
@@ -71,6 +81,7 @@ elif [ $gos == tachyon ]; then
    ui_print " • Patching SELinux... • "
    patch_cmdline "androidboot.selinux" "androidboot.selinux=permissive";
    patch_cmdline "android.is_aosp" "android.is_aosp=0";
+   patch_cmdline "android.is_uos" "android.is_ous=0";
    ui_print " "
    ui_print " • Setting android verified boot state to green... • "
    patch_cmdline "ro.boot.verifiedbootstate=orange" "ro.boot.verifiedbootstate=green";
@@ -81,7 +92,8 @@ elif [ $cos == oplus ]; then
    ui_print " "
    ui_print " • Patching SELinux... • "
    patch_cmdline "androidboot.selinux" "androidboot.selinux=permissive";
-   patch_cmdline "android.is_aosp" "android.is_aosp=0";
+   patch_cmdline "android.is_aosp" "android.is_aosp=1";
+   patch_cmdline "android.is_uos" "android.is_ous=0";
 else
    ui_print " "
    ui_print " • AOSP ROM detected! • " # Android 16/15/14/13 veri gud
@@ -91,6 +103,7 @@ else
    ui_print " "
    ui_print " • Patching Fingerprint Sensor... • "
    patch_cmdline "android.is_aosp" "android.is_aosp=1";
+   patch_cmdline "android.is_uos" "android.is_ous=0";
 fi
 
 ui_print " "
