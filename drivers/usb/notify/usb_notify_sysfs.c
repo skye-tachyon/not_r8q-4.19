@@ -23,6 +23,8 @@
 #include <linux/string.h>
 #include "usb_notify_sysfs.h"
 
+#include <linux/rom_notifier.h>
+
 #define MAX_STRING_LEN 20
 
 #if defined(CONFIG_USB_HW_PARAM)
@@ -974,24 +976,46 @@ static ssize_t usb_sl_show(struct device *dev,
 {
 	struct usb_notify_dev *udev = (struct usb_notify_dev *)
 		dev_get_drvdata(dev);
-    const char *state;
+	const char *state;
 
 	if (udev == NULL) {
 		pr_err("udev is NULL\n");
 		return -EINVAL;
 	}
-
-	state = LOCK_STATE_NAMES[udev->secure_lock % TOTAL_STATES];
-
+	
+	if (is_uos) {
+		state = LOCK_STATE_NAMES[udev->secure_lock % TOTAL_STATES];
 #ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
-    pr_info("%s %s (secure_lock = %s(%lu))\n",
-             __func__, state, lock_string(udev->secure_lock), udev->secure_lock);
+	pr_info("%s %s (secure_lock = %s(%lu))\n",
+		__func__, state, lock_string(udev->secure_lock), udev->secure_lock);
 #else
-    pr_info("%s %s secure_lock = %lu\n",
-             __func__, state, udev->secure_lock);
+	pr_info("%s %s secure_lock = %lu\n",
+		 __func__, state, udev->secure_lock);
 #endif
+		return snprintf(buf, PAGE_SIZE, "%s\n", state);
+	} else {
+		pr_info("%s secure_lock = %lu\n",
+			__func__, udev->secure_lock);
 
-    return snprintf(buf, PAGE_SIZE, "%s\n", state);
+		return sprintf(buf, "%lu\n", udev->secure_lock);
+	}
+}
+
+static bool valid_secure_lock_value(unsigned long secure_lock)
+{
+	bool ret = false;
+
+	switch (secure_lock) {
+	case USB_NOTIFY_LOCK_USB_RESTRICT:
+	case USB_NOTIFY_LOCK_USB_WORK:
+	case USB_NOTIFY_UNLOCK:
+		ret = true;
+		break;
+	default:
+		break;
+	}
+
+	return ret;
 }
 
 static ssize_t usb_sl_store(
@@ -1027,22 +1051,36 @@ static ssize_t usb_sl_store(
 		__func__, udev->secure_lock);
 #endif
 
-	sret = sscanf(buf, "%24s", input_str);
-	if (sret != 1) {
-		pr_err("%s invalid input (%s)-\n", __func__, input_str);
-		goto error;
-	}
-
-	secure_lock = ~0UL;
-	for (i = 0; i < VALID_INPUT_CNT; i++) {
-		if (strcmp(input_str, LOCK_STATE_NAMES[i]) == 0) {
-			secure_lock = i;
-			break;
+	if (is_uos) {
+		sret = sscanf(buf, "%24s", input_str);
+		if (sret != 1) {
+			pr_err("%s invalid input (%s)-\n", __func__, input_str);
+			goto error;
 		}
-	}
-	if (secure_lock == ~0UL) {
-		pr_err("%s disallow input (%s)-\n", __func__, input_str);
-		goto error;
+		
+		secure_lock = ~0UL;
+		for (i = 0; i < VALID_INPUT_CNT; i++) {
+			if (strcmp(input_str, LOCK_STATE_NAMES[i]) == 0) {
+				secure_lock = i;
+				break;
+			}
+		}
+		if (secure_lock == ~0UL) {
+			pr_err("%s disallow input (%s)-\n", __func__, input_str);
+			goto error;
+		}
+		
+	} else {
+		sret = sscanf(buf, "%lu", &secure_lock);
+		if (sret != 1)
+			goto error;
+
+		if (!valid_secure_lock_value(secure_lock)) {
+			pr_err("%s secure_lock is invalid (%lu)\n",
+				__func__, secure_lock);
+			ret = -EINVAL;
+			goto error;
+		}
 	}
 
 #ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
