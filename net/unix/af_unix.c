@@ -121,6 +121,8 @@
 
 #include "scm.h"
 
+#include <linux/rom_notifier.h>
+
 struct hlist_head unix_socket_table[2 * UNIX_HASH_SIZE];
 EXPORT_SYMBOL_GPL(unix_socket_table);
 DEFINE_SPINLOCK(unix_table_lock);
@@ -1148,10 +1150,16 @@ static int unix_dgram_connect(struct socket *sock, struct sockaddr *addr,
 			goto out;
 		alen = err;
 
-		/* Block libperfmgr from writing to logd (i.e., logcat) */
-		if (task_is_powerhal(current) &&
-		    !strncmp(sunaddr->sun_path, "/dev/socket/logdw", alen))
-			return -EINVAL;
+		if (is_aosp) {
+			/* Block libperfmgr from writing to logd (i.e., logcat) */
+			if (task_is_powerhal(current) &&
+				!strncmp(sunaddr->sun_path, "/dev/socket/logdw", alen))
+				return -EINVAL;
+		} else {
+			/* Block everyone from writing to logd (i know, i know :( this is wrong) */
+			if (!strncmp(sunaddr->sun_path, "/dev/socket/logdw", alen))
+				return -EACCES;
+		}
 
 		if (test_bit(SOCK_PASSCRED, &sock->flags) &&
 		    !unix_sk(sk)->addr && (err = unix_autobind(sock)) != 0)
